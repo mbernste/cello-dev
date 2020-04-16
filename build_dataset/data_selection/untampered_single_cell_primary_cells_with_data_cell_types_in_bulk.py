@@ -66,29 +66,49 @@ def main():
         for k,v in bulk_exp_to_labels.iteritems()
     }
 
-    bulk_labels = set()
+    # The idea here is that we only want single-cell samples
+    # for which ~all~ of its most-specific labels are a subset
+    # of one bulk-sample's label-set. Here we collect all of the
+    # unique bulk label-sets.
+    #
+    # For example, given a sample labeled as {embryonic cell, 
+    # neural cell}, but in the bulk data we only have samples 
+    # labelled as {embryonic cell} and {neural cell}. We would 
+    # discard this cell.
+    bulk_label_sets = set()
     for labels in bulk_exp_to_labels.values():
-        bulk_labels.update(labels)
+        bulk_label_sets.add(frozenset(labels))
 
-    labels_not_in_bulk = set()
+    label_sets_not_in_bulk = set()
     removed_exps = set()
     include_exps = set()
     g = DirectedAcyclicGraph(sc_label_graph)
     for exp, labels in sc_exp_to_labels.iteritems():
         ms_labels = set(g.most_specific_nodes(labels))
         ms_labels -= set(IGNORE)
-        if set(ms_labels) <= bulk_labels:
-            include_exps.add(exp)
-        else:
-            labels_not_in_bulk.update(set(ms_labels) - bulk_labels)
+
+        # Go through the bulk label-sets and check if the current
+        # sample's set of most-specific labels is a subset of any
+        # of them. If so, keep it. If not, we discard it.
+        found = False
+        for label_set in bulk_label_sets:
+            if set(ms_labels) <= label_set:
+                include_exps.add(exp)
+                found = True
+                break
+        if not found:
+            label_sets_not_in_bulk.add(frozenset(ms_labels))
             removed_exps.add(exp)
 
     print "%d single-cell experiments were removed" % len(removed_exps)
     print "Labels that were removed:"
     print json.dumps(
         [
-            og.id_to_term[x].name 
-            for x in labels_not_in_bulk
+            [
+                og.id_to_term[x].name   
+                for x in label_set
+            ]
+            for label_set in label_sets_not_in_bulk
         ], 
         indent=True
     )
