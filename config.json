@@ -1,0 +1,8 @@
+{
+    "annotation_file": "/ua/mnbernstein/projects/tbcp/phenotyping/manage_data/annotations/from.cell_type_primary_cells_v1-4/cell_type_primary_cells_v1-4.annot_8.experiment_centric.json",
+    "env_dir": "/tier2/deweylab/mnbernstein/phenotyping_environments/metasra_1-4.annot_8",
+    "cello_dev": "/ua/mnbernstein/projects/tbcp/cello_dev",
+    "tags_file": "/ua/mnbernstein/projects/tbcp/cello_dev/tags.json",
+    "metasra": "/tier2/deweylab/mnbernstein/metasra/metasra.v1-4.sqlite",
+    "sradb": "/tier2/deweylab/mnbernstein/sra_metadb/SRAmetadb.subdb.18-02-02.sqlite"
+}
