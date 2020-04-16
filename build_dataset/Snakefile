@@ -256,5 +256,42 @@ rule select_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
             shell(c)
 
 
+rule build_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
+    input:
+        '{}/experiment_sets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk.json'.format(config['env_dir']),
+    output:
+        '{env}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm'
+        )
+    run:
+        commands = [
+            'mkdir -p {}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk'.format(config['env_dir']),
+            'python2.7 {src}/build_dataset/build_expression_matrix.py {{input}} {feats} -o {{output}}'.format(
+                src=config['cello_dev'],
+                feats='log_tpm'
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+
+rule label_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
+    input:
+        '{}/experiment_sets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk.json'.format(config['env_dir'])
+    output:
+        '{}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk/labels.json'.format(config['env_dir'])
+    run:
+        commands = [
+            'mkdir -p {}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk'.format(config['env_dir']),
+            'python2.7 {src}/build_dataset/label_data.py {env}/annotation.json {{input}} -o {{output}}'.format(
+                src=config['cello_dev'],
+                env=config['env_dir']
+            )
+        ]
+        for c in commands:
+            shell(c)
+
 
 
