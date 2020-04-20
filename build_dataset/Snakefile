@@ -133,6 +133,41 @@ rule label_train_test_experiment_sets:
             )
         ]
         for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule metadata_train_test_experiment_sets:
+    input:
+        train='{}/experiment_sets/train_set.untampered_bulk_primary_cells_with_data.json'.format(config['env_dir']),
+        test='{}/experiment_sets/test_set.untampered_bulk_primary_cells_with_data.json'.format(config['env_dir'])
+    output:
+        train_study='{}/datasets/train_set.untampered_bulk_primary_cells_with_data/experiment_to_study.json'.format(config['env_dir']),
+        test_study='{}/datasets/test_set.untampered_bulk_primary_cells_with_data/experiment_to_study.json'.format(config['env_dir']),
+        train_tags='{}/datasets/train_set.untampered_bulk_primary_cells_with_data/experiment_to_tags.json'.format(config['env_dir']),
+        test_tags='{}/datasets/test_set.untampered_bulk_primary_cells_with_data/experiment_to_tags.json'.format(config['env_dir']),
+    run:
+        commands = [
+            'mkdir -p {}/datasets/train_set.untampered_bulk_primary_cells_with_data'.format(config['env_dir']),
+            'mkdir -p {}/datasets/test_set.untampered_bulk_primary_cells_with_data'.format(config['env_dir']),
+            'python2.7 {src}/build_dataset/build_study_metadata_file.py {{input.train}} {env}/annotation.json -o {{output.train_study}}'.format(
+                src=config['cello_dev'],
+                env=config['env_dir']
+            ),
+            'python2.7 {src}/build_dataset/build_study_metadata_file.py {{input.test}} {env}/annotation.json -o {{output.test_study}}'.format(
+                src=config['cello_dev'],
+                env=config['env_dir']
+            ),
+            'python2.7 {src}/build_dataset/build_tags_metadata_file.py {{input.train}} {env}/annotation.json -o {{output.train_tags}}'.format(
+                src=config['cello_dev'],
+                env=config['env_dir']
+            ),
+            'python2.7 {src}/build_dataset/build_tags_metadata_file.py {{input.test}} {env}/annotation.json -o {{output.test_tags}}'.format(
+                src=config['cello_dev'],
+                env=config['env_dir']
+            )
+        ]
+        for c in commands: 
+            shell('echo "{}"'.format(c))
             shell(c)
 
 ##############################################################################
@@ -198,6 +233,29 @@ rule label_untampered_bulk_primary_cells_with_data:
         for c in commands:
             shell(c)
 
+rule metadata_untampered_bulk_primary_cells_with_data:
+    input:
+        '{}/experiment_sets/untampered_bulk_primary_cells_with_data.json'.format(config['env_dir'])
+    output:
+        study='{}/datasets/untampered_bulk_primary_cells_with_data/experiment_to_study.json'.format(config['env_dir']),
+        tags='{}/datasets/untampered_bulk_primary_cells_with_data/experiment_to_tags.json'.format(config['env_dir'])
+    run:
+        commands = [
+            'mkdir -p {}/datasets/untampered_bulk_primary_cells_with_data'.format(config['env_dir']),
+            'python2.7 {src}/build_dataset/build_study_metadata_file.py {{input}} {env}/annotation.json -o {{output.study}}'.format(
+                src=config['cello_dev'],
+                env=config['env_dir']
+            ),
+            'python2.7 {src}/build_dataset/build_tags_metadata_file.py {{input}} {env}/annotation.json -o {{output.tags}}'.format(
+                src=config['cello_dev'],
+                env=config['env_dir']
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+
 ###############################################################################################
 #   Select all untampered single cell samples
 ###############################################################################################
@@ -233,9 +291,6 @@ rule label_untampered_single_cell_primary_cells_with_data:
         ]
         for c in commands:
             shell(c)
-
-
-
 
 rule select_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
     input:
@@ -293,5 +348,25 @@ rule label_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
         for c in commands:
             shell(c)
 
-
+rule metadata_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
+    input:
+        '{}/experiment_sets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk.json'.format(config['env_dir'])
+    output:
+        study='{}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk/experiment_to_study.json'.format(config['env_dir']),
+        tags='{}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk/experiment_to_tags.json'.format(config['env_dir'])
+    run:
+        commands = [
+            'mkdir -p {}/datasets/untampered_bulk_primary_cells_with_data'.format(config['env_dir']),
+            'python2.7 {src}/build_dataset/build_study_metadata_file.py {{input}} {env}/annotation.json -o {{output.study}}'.format(
+                src=config['cello_dev'],
+                env=config['env_dir']
+            ),
+            'python2.7 {src}/build_dataset/build_tags_metadata_file.py {{input}} {env}/annotation.json -o {{output.tags}}'.format(
+                src=config['cello_dev'],
+                env=config['env_dir']
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
 
