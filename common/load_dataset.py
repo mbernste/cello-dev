@@ -57,11 +57,11 @@ def load_dataset(data_dir, features):
     print 'Loading expression data from %s...' % expr_matrix_f
     with h5py.File(expr_matrix_f, 'r') as f:
         the_exps = [
-            str(x)[2:-1]
+            str(x)
             for x in f['experiment'][:]
         ]
         gene_ids = [
-            str(x)[2:-1]
+            str(x)
             for x in f['gene_id'][:]
         ]
         data_matrix = f['expression'][:]
