@@ -5,9 +5,11 @@ import json
 import random
 
 from one_nn import OneNN
+from ensemble_binary_classifiers import EnsembleOfBinaryClassifiers 
 
 CLASSIFIERS = {
-    'onn': OneNN
+    'onn': OneNN,
+    'ind_one_vs_rest': EnsembleOfBinaryClassifiers 
 }
 
 class Model:
