@@ -217,6 +217,26 @@ rule build_untampered_bulk_primary_cells_with_data_log_tpm_dataset:
             shell('echo "{}"'.format(c))
             shell(c)
 
+rule build_untampered_bulk_primary_cells_with_data_log_tpm_10x_genes_dataset:
+    input:
+        '{}/experiment_sets/untampered_bulk_primary_cells_with_data.json'.format(config['env_dir']),
+    output:
+        '{env}/datasets/untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm_10x_genes'
+        )
+    run:
+        commands = [
+            'mkdir -p {}/datasets/untampered_bulk_primary_cells_with_data'.format(config['env_dir']),
+            'python2.7 {src}/build_dataset/build_expression_matrix.py {{input}} {feats} -o {{output}}'.format(
+                src=config['cello_dev'],
+                feats='log_tpm_10x_genes'
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
 rule label_untampered_bulk_primary_cells_with_data:
     input:
         '{}/experiment_sets/untampered_bulk_primary_cells_with_data.json'.format(config['env_dir'])

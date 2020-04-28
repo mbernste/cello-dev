@@ -13,6 +13,9 @@ import collections
 from collections import defaultdict
 import h5py
 import numpy as np
+import pkg_resources as pr
+
+resource_package = __name__
 
 import kallisto_quantified_data_manager_hdf5 as kqdm
 
@@ -51,9 +54,29 @@ def _retrieve_log_tpm(exp_accs):
     return exp_accs, data_matrix, gene_ids
 
 
+def _retrieve_log_tpm_10x_genes(exp_accs):
+    """
+    log-TPM features from my Kallisto-quantified data 
+    for only genes that are also in the 10x datasets.
+    """
+    tenx_genes_f = pr.resource_filename(resource_package, "10x_genes.json")
+    with open(tenx_genes_f, 'r') as f:
+        tenx_genes = set(json.load(f))
+    all_genes = set(kqdm.get_all_gene_names_in_hg38_v24_kallisto())
+    remove_genes = all_genes - tenx_genes
+
+    exp_accs, data_matrix, gene_ids = kqdm.get_gene_tpms_for_experiments(
+        exp_accs,
+        remove_genes=remove_genes
+    )
+    data_matrix = np.log(data_matrix+1)
+    return exp_accs, data_matrix, gene_ids
+
+
 def _build_dataset(features, exp_list_f, out_f):
     FEATURE_TO_RETRIEVE = {
-        'log_tpm': _retrieve_log_tpm
+        'log_tpm': _retrieve_log_tpm,
+        'log_tpm_10x_genes': _retrieve_log_tpm_10x_genes
     }
     with open(exp_list_f, 'r') as f:
         the_exps = json.load(f)['experiments']
