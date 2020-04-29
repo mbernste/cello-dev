@@ -390,3 +390,44 @@ rule metadata_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
             shell('echo "{}"'.format(c))
             shell(c)
 
+##########################################################################################
+#   10x Zheng et al. sorted PBMC dataset
+##########################################################################################
+
+rule build_10x_log_cpm:
+    output:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'mkdir -p {}/datasets/zheng_10x_PBMC_2000_cells_per_type'.format(config['env_dir']),
+            'python2.7 build_expression_matrix_from_10x.py 2000 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule build_10x_log_cpm_magic:
+    input:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm_magic.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'python run_magic.py {input} -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule label_10x:
+    input:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/labels.json'.format(config['env_dir'])
+    run:    
+        commands = [
+            'python2.7 label_10x_data.py {input} -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
