@@ -431,3 +431,18 @@ rule label_10x:
         for c in commands:
             shell('echo "{}"'.format(c))
             shell(c)
+
+rule metadata_10x:
+    input:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm.h5'.format(config['env_dir'])
+    output:
+        study='{}/datasets/zheng_10x_PBMC_2000_cells_per_type/experiment_to_study.json'.format(config['env_dir']),
+        tags='{}/datasets/zheng_10x_PBMC_2000_cells_per_type/experiment_to_tags.json'.format(config['env_dir'])
+    run:
+        commands = [
+            'python2.7 build_study_metadata_file_10x.py {input} -o {output.study}',
+            'python2.7 build_tags_metadata_file_10x.py {input} -o {output.tags}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)

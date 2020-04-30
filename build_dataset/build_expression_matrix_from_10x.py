@@ -155,16 +155,17 @@ def _load_random_subset(num_per_type, targ_genes):
             data_matrix = np.concatenate([data_matrix, mat])
         
     # Compute log-cpm
-    data_matrix = np.array(data_matrix)
+    data_matrix = np.array(data_matrix, dtype=np.float64)
     print data_matrix.shape
     print 'Computing log-CPM'
     data_matrix = np.array([
         x/sum(x)
         for x in data_matrix
     ])
-    data_matrix *= 10e6
+    data_matrix *= 1e6
     data_matrix = np.log(data_matrix + 1)
     print 'done.'    
+    print(data_matrix)
 
     print 'Loaded counts matrix of shape %s' % str(data_matrix.shape) 
     return all_datasets, all_barcodes, all_cell_ids, data_matrix

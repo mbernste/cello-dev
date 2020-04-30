@@ -5,6 +5,7 @@
 from optparse import OptionParser
 import json
 from os.path import join
+import dill
 
 import train_model
 from common import load_dataset
@@ -38,7 +39,8 @@ def main():
     out_dir = options.out_dir
 
     if options.model_f:
-        mod = dill.load(options.model_f)
+        with open(options.model_f, 'r') as f:
+            mod = dill.load(f)
         features = args[1] 
     else:
         assert options.train_dir is not None
@@ -61,18 +63,26 @@ def main():
         test_data_dir,
         features
     )
-    og = r[0]
-    label_graph = r[1]
-    label_to_name = r[2]
     the_exps = r[3]
-    exp_to_index = r[4]
-    exp_to_labels = r[5]
-    exp_to_tags = r[6]
-    exp_to_study = r[7]
-    study_to_exps = r[8]
-    exp_to_ms_labels = r[9]
     data_matrix = r[10]
-    gene_names = r[11]    
+    gene_ids = r[11]
+
+    # Re-order columns of data matrix to be same as expected
+    # by the model
+    assert frozenset(mod.classifier.features) == frozenset(gene_ids)
+    if not tuple(mod.classifier.features) == tuple(gene_ids):
+        print 'Re-ordering columns of data matrix to be in line with classifier...'
+        gene_to_index = {
+            gene: i
+            for i, gene in enumerate(gene_ids)
+        }
+        indices = [
+            gene_to_index[gene]
+            for gene in mod.classifier.features
+        ]
+        data_matrix = data_matrix[:,indices]
+        print 'done.'
+            
 
     # Apply model
     print('Applying model to test set.')

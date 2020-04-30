@@ -79,6 +79,7 @@ def main():
         with open(config_f, 'r') as f:
             config = json.load(f)
             label_graph_f = config['label_graph_file']
+            labeling_f = config['labeling_file']
             results_fs = config['results_files']
             method_names = config['method_names'] 
     else:
@@ -93,11 +94,15 @@ def main():
     with open(label_graph_f, 'r') as f:
         label_data = json.load(f)
     label_graph = DirectedAcyclicGraph(label_data['label_graph'])
-    exp_to_labels = label_data['labels']
     label_to_name = {
         x: og.id_to_term[x].name
         for x in label_graph.get_all_nodes()
     }
+
+    # Load the labellings
+    with open(labeling_f, 'r') as f:
+        labelling = json.load(f)
+    exp_to_labels = labelling['labels']
 
     # Load the results
     all_results = []
@@ -126,21 +131,21 @@ def main():
     for results_df in all_results:
         results_df = results_df.loc[assignment_df.index][assignment_df.columns]
         if conservative_mode:
-            assert False
-            # TODO REFACTOR THIS!
-            #metrics_matrix, label_to_pr_curve = cm.compute_conservative_metrics(
-            #    results_df,
-            #    assignment_df,
-            #    label_graph,
-            #    label_to_name,
-            #    compute_to_labels=include_labels,
-            #    og=og
-            #)
+            metrics_df, label_to_pr_curve = cm.compute_label_centric_metrics(
+                results_df,
+                assignment_df,
+                include_labels,
+                label_graph=label_graph,
+                label_to_name=label_to_name,
+                og=og,
+                conservative=True
+            )
         else:
             metrics_df, label_to_pr_curve = cm.compute_label_centric_metrics(
                 results_df,
                 assignment_df,
-                include_labels
+                include_labels,
+                conservative=False
             )
         metrics_dfs.append(metrics_df)
         label_to_pr_curves.append(label_to_pr_curve)
