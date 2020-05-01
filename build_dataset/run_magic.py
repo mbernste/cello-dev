@@ -28,13 +28,8 @@ def main():
             # Copy other datasets to new H5 file
             for k in in_f.keys():
                 if k != 'expression':
-                    #v = np.array([
-                    #    str(x)[2:-1].encode('utf-8')
-                    #    for x in in_f[k][:]
-                    #])
-                    #print(v)
                     out_f.create_dataset(k,data=in_f[k][:])
-
+            
 
 if __name__ == "__main__":
     main()

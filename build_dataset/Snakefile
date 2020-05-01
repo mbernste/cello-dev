@@ -419,6 +419,46 @@ rule build_10x_log_cpm_magic:
             shell('echo "{}"'.format(c))
             shell(c)
 
+rule build_10x_log_cpm_leiden_0_8_magic:
+    input:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm_leiden_0_8_magic.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'python cluster_and_run_magic.py {input} 0.8 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule build_10x_log_cpm_leiden_1_6_magic:
+    input:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm_leiden_1_6_magic.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'python cluster_and_run_magic.py {input} 1.6 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule build_10x_log_cpm_leiden_3_2_magic:
+    input:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm_leiden_3_2_magic.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'python cluster_and_run_magic.py {input} 3.2 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+
 rule label_10x:
     input:
         '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm.h5'.format(config['env_dir'])
