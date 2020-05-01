@@ -32,6 +32,9 @@ class L2LogisticRegression():
     def predict_proba(self, X):
         return self.model.predict_proba(X)
 
+    def predict_log_proba(self, X):
+        return self.model.predict_log_proba(X)
+
 def build_binary_classifier(algorithm, params):
     if algorithm == "logistic_regression":
         assert 'penalty' in params

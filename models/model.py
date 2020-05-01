@@ -6,10 +6,14 @@ import random
 
 from one_nn import OneNN
 from ensemble_binary_classifiers import EnsembleOfBinaryClassifiers 
+from cascaded_discriminative_classifiers import CascadedDiscriminativeClassifiers 
+from isotonic_regression import IsotonicRegression
 
 CLASSIFIERS = {
     'onn': OneNN,
-    'ind_one_vs_rest': EnsembleOfBinaryClassifiers 
+    'ind_one_vs_rest': EnsembleOfBinaryClassifiers,
+    'cdc': CascadedDiscriminativeClassifiers,
+    'isotonic_regression': IsotonicRegression
 }
 
 class Model:
@@ -36,7 +40,8 @@ class Model:
             label_graph,
             item_to_group=None,
             verbose=False,
-            features=None
+            features=None,
+            model_dependency=None
         ):
         """
         Parameters: 
@@ -63,7 +68,8 @@ class Model:
             label_graph,
             item_to_group=item_to_group,
             verbose=verbose,
-            features=features
+            features=features,
+            model_dependency=model_dependency
         )
 
     def predict(self, X, test_items):
@@ -84,7 +90,8 @@ def train_model(
         verbose=False,
         item_to_group=None,
         tmp_dir=None,
-        features=None
+        features=None,
+        model_dependency=None
     ):
     """
     Args:
@@ -117,7 +124,8 @@ def train_model(
         label_graph,
         item_to_group=item_to_group,
         verbose=verbose,
-        features=features
+        features=features,
+        model_dependency=model_dependency
     )
     return model
 
