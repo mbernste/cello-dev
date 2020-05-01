@@ -1,9 +1,5 @@
 #################################################################
-#   Supervised hierarchical classification using a per-label
-#   binary support vector machine. Variants of this algorithm
-#   enforce label-graph consistency by propogating positive
-#   predictions upward through the graph's 'is_a' relationship
-#   edges, and propogates negative predictions downward.
+#   Hierarchical classification via isotonic regression
 #################################################################
 import sys
 from optparse import OptionParser
@@ -100,23 +96,6 @@ class IsotonicRegression():
         confidence_df, scores_df = self.ensemble.predict(X, test_items)
         labels_order = confidence_df.columns        
 
-        #label_to_scores = {}
-        #for label, classifier in self.label_to_classifier.iteritems():
-        #    pos_index = 0
-        #    for index, clss in enumerate(classifier.classes_):
-        #        if clss == 1:
-        #            pos_index = index
-        #            break
-        #    scores = [
-        #        x[pos_index] 
-        #        for x in classifier.predict_proba(queries)
-        #    ]
-        #    label_to_scores[label] = scores
-        #
-        #labels_order = sorted(label_to_scores.keys())
-        #label_to_prob_list = []
-        #label_to_score_list = []
-
         # Create the constraints matrix
         constraints_matrix = []
         for row_label in labels_order:
@@ -132,11 +111,6 @@ class IsotonicRegression():
                 constraints_matrix.append(row)
         b = np.zeros(len(constraints_matrix))
         constraints_matrix = np.array(constraints_matrix).T
-
-        print "Label order (%d):" % len(labels_order)
-        print labels_order
-        print "Constraints matrix (%d, %d):" % (len(constraints_matrix), len(constraints_matrix.T))
-        print constraints_matrix.T
 
         pred_da = []
         for q_i in range(len(X)):
@@ -162,23 +136,12 @@ class IsotonicRegression():
             # xf is the final list of probabilities for item q_i
             # ordered by 
             pred_da.append(xf)
-
-            #label_to_prob = {}
-            #for label, est_prob in zip(labels_order, xf):
-            #    label_to_prob[label] = est_prob
-            #
-            #label_to_prob_list.append(label_to_prob)
-            #label_to_score = {}
-            #for label, score in zip(labels_order, predictions):
-            #    label_to_score[label] = label_to_scores[label][q_i]
-            #label_to_score_list.append(label_to_score)
         pred_df = pd.DataFrame(
             data=pred_da,
             columns=labels_order,
             index=test_items
         )
         return pred_df, confidence_df
-        #return  label_to_prob_list, label_to_score_list
 
 
 def _validate_pretrained_model(ensemble, train_items, label_graph, features):
