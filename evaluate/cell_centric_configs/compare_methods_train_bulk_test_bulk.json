@@ -1,0 +1,16 @@
+{
+    "label_graph_file": "/tier2/deweylab/mnbernstein/phenotyping_environments/metasra_1-4.annot_8/datasets/untampered_bulk_primary_cells_with_data/labels.json",
+    "labeling_file": "/tier2/deweylab/mnbernstein/phenotyping_environments/metasra_1-4.annot_8/datasets/test_set.untampered_bulk_primary_cells_with_data/labels.json",
+    "results_files": [
+        "/tier2/deweylab/mnbernstein/phenotyping_environments/metasra_1-4.annot_8/results/train_test_experiments/TRAIN_train_set.untampered_bulk_primary_cells_with_data_TEST_test_set.untampered_bulk_primary_cells_with_data/FRAMEWORK_ind.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm/classification_results.tsv",
+        "/tier2/deweylab/mnbernstein/phenotyping_environments/metasra_1-4.annot_8/results/train_test_experiments/TRAIN_train_set.untampered_bulk_primary_cells_with_data_TEST_test_set.untampered_bulk_primary_cells_with_data/FRAMEWORK_ir.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm/classification_results.tsv",
+        "/tier2/deweylab/mnbernstein/phenotyping_environments/metasra_1-4.annot_8/results/train_test_experiments/TRAIN_train_set.untampered_bulk_primary_cells_with_data_TEST_test_set.untampered_bulk_primary_cells_with_data/FRAMEWORK_cdc.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm/classification_results.tsv",
+        "/tier2/deweylab/mnbernstein/phenotyping_environments/metasra_1-4.annot_8/results/train_test_experiments/TRAIN_train_set.untampered_bulk_primary_cells_with_data_TEST_test_set.untampered_bulk_primary_cells_with_data/FRAMEWORK_one_nn.FEATS_log_tpm/classification_results.tsv"
+    ],
+    "method_names": [
+        "Ind.",
+        "IR",
+        "CLR",
+        "1NN"
+    ]
+}
