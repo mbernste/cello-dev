@@ -2,7 +2,6 @@
 #   Hierarchical classification via isotonic regression
 #################################################################
 import sys
-from optparse import OptionParser
 import numpy as np
 from quadprog import solve_qp
 import dill
@@ -10,31 +9,6 @@ import pandas as pd
 
 from ensemble_binary_classifiers import EnsembleOfBinaryClassifiers 
 
-def main():
-    parser = OptionParser()
-    #parser.add_option("-a", "--a_descrip", action="store_true", help="This is a flat")
-    #parser.add_option("-b", "--b_descrip", help="This is an argument")
-    (options, args) = parser.parse_args()
-
-    feat_vecs = [
-        [1,1,1,2,3],
-        [10,23,1,24,32],
-        [543,21,23,2,5]
-    ]
-
-    items = [
-        'a',
-        'b',
-        'c'
-    ]
-    item_to_labels = {
-        'a':['hepatocyte', 'disease'],
-        'b':['T-cell'],
-        'c':['stem cell', 'cultured cell']
-    }
-
-
-   
 class IsotonicRegression():
     def __init__(
             self,
@@ -159,5 +133,3 @@ def _validate_pretrained_model(ensemble, train_items, label_graph, features):
     return True
 
 
-if __name__ == "__main__":
-    main()

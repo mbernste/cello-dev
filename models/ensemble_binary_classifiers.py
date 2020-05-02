@@ -7,7 +7,6 @@
 #################################################################
 
 import sys
-from optparse import OptionParser
 from collections import defaultdict
 import numpy as np
 import pandas as pd
@@ -16,31 +15,6 @@ import binary_classifier as bc
 
 POS_CLASS = 1
 VERBOSE = True
-
-def main():
-    parser = OptionParser()
-    #parser.add_option("-a", "--a_descrip", action="store_true", help="This is a flat")
-    #parser.add_option("-b", "--b_descrip", help="This is an argument")
-    (options, args) = parser.parse_args()
-
-    feat_vecs = [
-        [1,1,1,2,3],
-        [10,23,1,24,32],
-        [543,21,23,2,5]
-    ]
-
-    items = [
-        'a',
-        'b',
-        'c'
-    ]
-    item_to_labels = {
-        'a':['hepatocyte', 'disease'],
-        'b':['T-cell'],
-        'c':['stem cell', 'cultured cell']
-    }
-    
-
 
 class EnsembleOfBinaryClassifiers(object):
     def __init__(
@@ -186,6 +160,11 @@ class EnsembleOfBinaryClassifiers(object):
                 for x in classifier.predict_proba(X)
             ]
             mat.append(scores)
+        trivial_labels = sorted(self.trivial_labels)
+        for label in trivial_labels:
+            mat.append(list(np.full(len(test_items), 1.0)))
+
+        all_labels += trivial_labels
         mat = np.array(mat).T
         df = pd.DataFrame(
             data=mat,
@@ -246,5 +225,3 @@ def _compute_negative_examples(
         neg_items = list(final_items)
     return neg_items
 
-if __name__ == "__main__":
-    main()

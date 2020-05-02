@@ -2,7 +2,6 @@
 #   TODO
 #################################################################
 import sys
-from optparse import OptionParser
 from collections import defaultdict
 import numpy as np
 import math
@@ -12,9 +11,6 @@ import binary_classifier as bc
 
 POS_CLASS = 1
 NEG_CLASS = 0
-
-DEBUG = True
-
 
 class CascadedDiscriminativeClassifiers(object):
     def __init__(
@@ -322,5 +318,3 @@ def _compute_training_sets_remove_ambiguous(
         print "Ambiguous items (%d): %s" % (len(ambig_items), ambig_items)
     return label_to_pos_items, label_to_neg_items
 
-if __name__ == "__main__":
-    main()
