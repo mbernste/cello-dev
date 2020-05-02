@@ -8,12 +8,14 @@ from one_nn import OneNN
 from ensemble_binary_classifiers import EnsembleOfBinaryClassifiers 
 from cascaded_discriminative_classifiers import CascadedDiscriminativeClassifiers 
 from isotonic_regression import IsotonicRegression
+from true_path_rule import TruePathRule
 
 CLASSIFIERS = {
     'onn': OneNN,
     'ind_one_vs_rest': EnsembleOfBinaryClassifiers,
     'cdc': CascadedDiscriminativeClassifiers,
-    'isotonic_regression': IsotonicRegression
+    'isotonic_regression': IsotonicRegression,
+    'true_path_rule': TruePathRule
 }
 
 class Model:

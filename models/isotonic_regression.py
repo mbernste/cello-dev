@@ -158,5 +158,6 @@ def _validate_pretrained_model(ensemble, train_items, label_graph, features):
         return False
     return True
 
+
 if __name__ == "__main__":
     main()
