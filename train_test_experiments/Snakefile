@@ -8,6 +8,7 @@ ONE_NN_CORRELATION_LOG_TPM = 'FRAMEWORK_one_nn.FEATS_log_tpm'
 IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS = 'FRAMEWORK_ind.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm'
 IR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS = 'FRAMEWORK_ir.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm'
 CDC_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS = 'FRAMEWORK_cdc.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm'
+TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS = 'FRAMEWORK_tpr.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm'
 
 IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x = 'FRAMEWORK_ind.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm_10x_genes'
 CDC_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x = 'FRAMEWORK_cdc.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm_10x_genes'
@@ -216,10 +217,92 @@ rule test_test_ir_downweight_by_class:
             shell(c)
 
 ####################################################
-##   Algorithm: Isotonic regression
+##   Algorithm: True Path Rule
 ##   Features: log-TPM
 ##   Training set: bulk training set
 ##   Test set: bulk test set
+#######################################################
+rule train_training_tpr_downweight_by_class:
+    input:
+        labels='{}/datasets/train_set.untampered_bulk_primary_cells_with_data/labels.json'.format(config['env_dir']),
+        data='{env}/datasets/train_set.untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm'
+        ),
+        model='{env_dir}/trained_models/{train}/{algo}/model.dill'.format(
+            env_dir=config['env_dir'],
+            train='train_set.untampered_bulk_primary_cells_with_data',
+            algo=IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+        )
+    output:
+        '{env_dir}/trained_models/{train}/{algo}/model.dill'.format(
+            env_dir=config['env_dir'],
+            train='train_set.untampered_bulk_primary_cells_with_data',
+            algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+        )
+    run:
+        commands = [
+            'mkdir -p {env_dir}/trained_models/{train}/{algo}'.format(
+                env_dir=config['env_dir'],
+                train='train_set.untampered_bulk_primary_cells_with_data',
+                algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+            ),
+            'python2.7 {src}/train_model.py -m {{input.model}} {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
+                env_dir=config['env_dir'],
+                src=config['cello_dev'],
+                train='train_set.untampered_bulk_primary_cells_with_data',
+                algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+            )
+
+        ]
+        for c in commands:
+            shell(c)
+
+rule test_test_tpr_downweight_by_class:
+    input:
+        test_label='{}/datasets/test_set.untampered_bulk_primary_cells_with_data/labels.json'.format(config['env_dir']),
+        test_data='{env}/datasets/test_set.untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm'
+        ),
+        model='{env_dir}/trained_models/{train}/{algo}/model.dill'.format(
+            env_dir=config['env_dir'],
+            train='train_set.untampered_bulk_primary_cells_with_data',
+            algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+        )
+    output:
+        '{env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}/classification_results.tsv'.format(
+            env_dir=config['env_dir'],
+            train='train_set.untampered_bulk_primary_cells_with_data',
+            test='test_set.untampered_bulk_primary_cells_with_data',
+            algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+        )
+    run:
+        commands = [
+            'mkdir -p {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
+                env_dir=config['env_dir'],
+                test='test_set.untampered_bulk_primary_cells_with_data',
+                train='train_set.untampered_bulk_primary_cells_with_data',
+                algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+            ),
+            'python2.7 {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
+                env_dir=config['env_dir'],
+                src=config['cello_dev'],
+                train='train_set.untampered_bulk_primary_cells_with_data',
+                test='test_set.untampered_bulk_primary_cells_with_data',
+                feats='log_tpm',
+                algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+            )
+        ]
+        for c in commands:
+            shell(c)
+
+
+####################################################
+#   Algorithm: Cascaded Logistic Regression
+#   Features: log-TPM
+#   Training set: bulk training set
+#   Test set: bulk test set
 ######################################################
 rule train_training_clr_downweight_by_class:
     input:
