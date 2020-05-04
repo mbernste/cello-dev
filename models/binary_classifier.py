@@ -22,6 +22,15 @@ class L2LogisticRegression():
                 class_weight=class_weight,
                 intercept_scaling=intercept_scaling
             )
+        elif solver == 'saga':
+            self.model = LogisticRegression(
+                C=penalty_weight,
+                penalty='l2',
+                solver='saga',
+                tol=1e-4,
+                max_iter=200,
+                class_weight=class_weight
+            )
 
     def fit(self, X, y):
         self.model.fit(X, y)

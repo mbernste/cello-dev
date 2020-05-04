@@ -20,6 +20,11 @@ def main():
     usage = "usage: %prog <configuration_file> <dataset_directory>"
     parser = OptionParser(usage)
     parser.add_option(
+        "-m",
+        "--pretrained_ensemble",
+        help="Path to a dilled pre-trained ensemble of classifiers"
+    )
+    parser.add_option(
         "-o", 
         "--out_dir", 
         help="Directory in which to write the model"
@@ -29,31 +34,53 @@ def main():
     config_f = args[0]
     dataset_dir = args[1]
     out_dir = options.out_dir
+    if options.pretrained_ensemble:
+        pretrained_ensemble_f = options.pretrained_ensemble
+    else:
+        pretrained_ensemble_f = None
 
     # Load the configuration
-    print "Reading configuration from %s." % config_f 
+    print("Reading configuration from {}.".format(config_f)) 
     with open(config_f, 'r') as f:
         config = json.load(f)
     features = config['features']
-    algorithm = algo_config['algorithm']
-    params = algo_config['params']
+    algorithm = config['algorithm']
+    params = config['params']
+    preprocessors = None
+    preprocessor_params = None
+    if 'preprocessors' in config:
+        assert 'preprocessor_params' in config
+        preprocessors = config['preprocessors']
+        preprocessor_params = config['preprocessor_params']
 
     # Train model
-    mod = _train_model(
+    mod = train_model(
         dataset_dir, 
         features, 
         algorithm, 
         params,
-        join(out_dir, 'tmp')
+        join(out_dir, 'tmp'),
+        preprocessor_names=preprocessors,
+        preprocessor_params=preprocessor_params,
+        model_dependency=pretrained_ensemble_f
     )
 
-    print "Dumping the model with dill..."
+    print("Dumping the model with dill...")
     out_f = join(out_dir, 'model.dill')
-    with open(out_f, 'w') as f:
+    with open(out_f, 'wb') as f:
         dill.dump(mod, f)
-    print "done."
+    print("done.")
 
-def train_model(dataset_dir, features, algorithm, params, tmp_dir):
+def train_model(
+        dataset_dir, 
+        features, 
+        algorithm, 
+        params, 
+        tmp_dir, 
+        model_dependency=None, 
+        preprocessor_names=None,
+        preprocessor_params=None
+    ):
     # Load the data
     r = load_dataset.load_dataset(
         dataset_dir,
@@ -73,8 +100,11 @@ def train_model(dataset_dir, features, algorithm, params, tmp_dir):
     gene_names = r[11]
 
     # Train the classifier
-    print 'Training model: %s' % algorithm
-    print 'Parameters:\n%s' % json.dumps(params, indent=4)
+    print('Training model: {}'.format(algorithm))
+    print('Parameters:\n{}'.format(json.dumps(params, indent=4)))
+    if preprocessor_names is not None:
+        print('Preprocessing data with: {}'.format(preprocessor_names))
+        print('Parameters:\n{}'.format(json.dumps(preprocessor_params, indent=4)))
     mod = model.train_model(
         algorithm,
         params,
@@ -84,9 +114,12 @@ def train_model(dataset_dir, features, algorithm, params, tmp_dir):
         label_graph,
         item_to_group=exp_to_study,
         tmp_dir=tmp_dir,
-        features=gene_names
+        features=gene_names,
+        model_dependency=model_dependency,
+        preprocessor_names=preprocessor_names,
+        preprocessor_params=preprocessor_params
     )
-    print 'done.'
+    print('done.')
     return mod
 
 

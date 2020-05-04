@@ -4,17 +4,12 @@
 #   a purposeful change in gene expression was induced.  This does not include
 #   experiments that have been transfected with a control vector.
 ####################################################################################
-
 from optparse import OptionParser
-import sys
 import json
-
-sys.path.append("/ua/mnbernstein/projects/tbcp/phenotyping/graph_lib")
-sys.path.append("/ua/mnbernstein/projects/tbcp/data_management/my_kallisto_pipeline")
 
 import graph_lib
 from graph_lib import graph
-import kallisto_quantified_data_manager_hdf5 as kqdm
+import kallisto_quantified_data_manager_hdf5_py3 as kqdm
 
 EXCLUDE_TAGS = set([
     "experimental_treatment",
@@ -75,10 +70,10 @@ def main():
     found_nan_exps = set()
     for vec_i, vec in enumerate(data_matrix):
         if (vec_i + 1) % 100 == 0:
-            print "Checked %d/%d vectors..." % (vec_i+1, len(data_matrix))
+            print("Checked {}/{} vectors...".format(vec_i+1, len(data_matrix)))
         sum_vec = sum(vec)
         if sum_vec == 0.0:
-            print "Experiment %s has a sum of zero..." % exps_list[vec_i]
+            print("Experiment {} has a sum of zero...".format(exps_list[vec_i]))
             found_nan_exps.add(exps_list[vec_i])
     include_experiments = include_experiments - found_nan_exps   
  
@@ -86,7 +81,7 @@ def main():
         f.write(json.dumps(
             {
                 "list_name": "all_untampered_bulk_primary_cells_with_data",
-                "description": "These are all experiments that are not labelled with %s, but allows those labelled with %s." % (
+                "description": "These are all experiments that are not labelled with {}, but allows those labelled with {}.".format(
                     list(EXCLUDE_TAGS), 
                     list(EXCEPT_EXCLUDE_TAGS)
                 ),
@@ -94,6 +89,7 @@ def main():
             },
             indent=4
         ))    
+
 
 def import_tags_graph(tags_f):
     with open(tags_f, 'r') as f:

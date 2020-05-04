@@ -1,9 +1,7 @@
 ####################################################################################
 #
 ####################################################################################
-
 from optparse import OptionParser
-import sys
 import json
 
 from common.the_ontology import the_ontology
@@ -54,7 +52,7 @@ def main():
         sc_exp_to_labels = labels_data['labels']
     sc_exp_to_labels = {
         k: set(v) - set(BLACKLIST) 
-        for k,v in sc_exp_to_labels.iteritems()
+        for k,v in sc_exp_to_labels.items()
     }
 
     with open(bulk_label_graph_f, 'r') as f:
@@ -63,7 +61,7 @@ def main():
         bulk_exp_to_labels = labels_data['labels']
     bulk_exp_to_labels = {
         k: set(v) - set(BLACKLIST)
-        for k,v in bulk_exp_to_labels.iteritems()
+        for k,v in bulk_exp_to_labels.items()
     }
 
     # The idea here is that we only want single-cell samples
@@ -83,7 +81,7 @@ def main():
     removed_exps = set()
     include_exps = set()
     g = DirectedAcyclicGraph(sc_label_graph)
-    for exp, labels in sc_exp_to_labels.iteritems():
+    for exp, labels in sc_exp_to_labels.items():
         ms_labels = set(g.most_specific_nodes(labels))
         ms_labels -= set(IGNORE)
 
@@ -100,9 +98,9 @@ def main():
             label_sets_not_in_bulk.add(frozenset(ms_labels))
             removed_exps.add(exp)
 
-    print "%d single-cell experiments were removed" % len(removed_exps)
-    print "Labels that were removed:"
-    print json.dumps(
+    print("{} single-cell experiments were removed".format(len(removed_exps)))
+    print("Labels that were removed:")
+    print(json.dumps(
         [
             [
                 og.id_to_term[x].name   
@@ -111,7 +109,7 @@ def main():
             for label_set in label_sets_not_in_bulk
         ], 
         indent=True
-    )
+    ))
 
     with open(out_f, 'w') as f:
         f.write(json.dumps(

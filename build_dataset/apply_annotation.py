@@ -3,21 +3,13 @@
 # of the form developed in May 2018 (annotate each study with partitions of 
 # samples, where each partition is annotated with a set of tags)
 ###############################################################################
-
-import os
-from os.path import join
-import sys
-
 from optparse import OptionParser
 import json
-import subprocess
 import sqlite3
 from collections import defaultdict
 
-sys.path.append("/ua/mnbernstein/projects/tbcp/phenotyping/common")
-
-import the_ontology
-from onto_lib import ontology_graph
+from common import the_ontology
+from onto_lib_py3 import ontology_graph
 
 def main():
     parser = OptionParser()
@@ -60,14 +52,14 @@ def main():
                 for x in terms  
                 if x[0:2] == "CL"
             ])
-            for sample, terms in sample_to_terms.iteritems()
+            for sample, terms in sample_to_terms.items()
         }
     )
     sample_to_supp_terms = defaultdict(
         lambda: set(),
         {
             k: set(v)
-            for k,v in sample_to_terms.iteritems()
+            for k,v in sample_to_terms.items()
         }
     )
 
@@ -75,16 +67,16 @@ def main():
     for annot_data in annot['annotated_studies']:
         # Add extra annotated terms to samples
         if 'sample_to_add_terms' in annot_data:
-            for sample, add_terms in annot_data['sample_to_add_terms'].iteritems():
+            for sample, add_terms in annot_data['sample_to_add_terms'].items():
                 sample_to_terms[sample].update(add_terms)
                 sample_to_supp_terms[sample].update(add_terms)
         # Remove some terms from some samples
         if 'sample_to_remove_terms' in annot_data:
-            for sample, rem_terms in annot_data['sample_to_remove_terms'].iteritems():
+            for sample, rem_terms in annot_data['sample_to_remove_terms'].items():
                 sample_to_terms[sample] = list(sample_to_terms[sample] - set(rem_terms))
                 sample_to_supp_terms[sample] = sample_to_supp_terms[sample] - set(rem_terms)
         if 'sample_to_supplemental_terms' in annot_data:
-            for sample, supp_terms in annot_data['sample_to_supplemental_terms'].iteritems():
+            for sample, supp_terms in annot_data['sample_to_supplemental_terms'].items():
                 sample_to_supp_terms[sample].update(set(supp_terms)) 
 
         for partition in annot_data['partitions']:
@@ -118,7 +110,7 @@ def map_experiment_to_sample(
     experiment_sql = """SELECT experiment_accession,
     sample_accession, study_accession FROM experiment
     """
-    print "querying database for experiment to sample mappings..."
+    print("Querying database for experiment to sample mappings...")
     exp_to_sample = {}
     with sqlite3.connect(sradb_f) as db_conn:
         c = db_conn.cursor()
@@ -129,7 +121,7 @@ def map_experiment_to_sample(
             study = r[2]
             if exp in restrict_to_experiments:
                 exp_to_sample[exp] = sample
-    print "done."
+    print("done.")
     return exp_to_sample
 
 
@@ -137,7 +129,7 @@ def map_samples_to_terms(restrict_to_samples, metasra_f):
     og = the_ontology.the_ontology()
     query_metasra_mapped_terms_sql = "SELECT sample_accession, \
         term_id FROM mapped_ontology_terms;"
-    print "querying database for sample to terms mappings..."
+    print("Querying database for sample to terms mappings...")
     sample_to_mapped_terms = defaultdict(lambda: set())
     with sqlite3.connect(metasra_f) as metasra_conn:
         metasra_c = metasra_conn.cursor()    
@@ -150,19 +142,16 @@ def map_samples_to_terms(restrict_to_samples, metasra_f):
     
     # Restrict to most specific term
     mod_sample_to_mapped_terms = {}
-    for sample, terms in sample_to_mapped_terms.iteritems():
+    for sample, terms in sample_to_mapped_terms.items():
         ms_mapped_terms = ontology_graph.most_specific_terms(
             terms, og, sup_relations=["is_a", "part_of"]
         )
         mod_sample_to_mapped_terms[sample] = set(ms_mapped_terms)
     sample_to_mapped_terms = mod_sample_to_mapped_terms
-    print "done."
+    print("done.")
     return sample_to_mapped_terms
 
 
-def _run_cmd(cmd):
-    print cmd
-    subprocess.call(cmd, shell=True, env=None)
     
 
 if __name__ == "__main__":

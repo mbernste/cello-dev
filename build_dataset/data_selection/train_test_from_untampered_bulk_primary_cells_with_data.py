@@ -8,18 +8,12 @@
 #   such a way that a purposeful change in gene expression was induced.  This does 
 #   not include experiments that have been transfected with a control vector.
 ####################################################################################
-
 from optparse import OptionParser
-import sys
 import json
 from collections import defaultdict 
 
-sys.path.append("/ua/mnbernstein/projects/tbcp/data_management/my_kallisto_pipeline")
-sys.path.append("/ua/mnbernstein/projects/tbcp/phenotyping/common")
-
-import labelizers
-import the_ontology
-import kallisto_quantified_data_manager_hdf5 as kqdm
+from common import the_ontology
+import kallisto_quantified_data_manager_hdf5_py3 as kqdm
 
 def main():
     usage = "usage: %prog <experiment metadata file> <untampered exp list file for experiments that have data> <train-test set partition file>" 

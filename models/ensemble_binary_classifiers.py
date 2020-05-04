@@ -10,8 +10,9 @@ import sys
 from collections import defaultdict
 import numpy as np
 import pandas as pd
+import dill
 
-import binary_classifier as bc
+from . import binary_classifier as bc
 
 POS_CLASS = 1
 VERBOSE = True
@@ -42,7 +43,8 @@ class EnsembleOfBinaryClassifiers(object):
             label_graph,
             item_to_group=None, 
             verbose=False,
-            features=None
+            features=None,
+            model_dependency=None # This is unused
         ):
         """
         Args:
@@ -74,81 +76,69 @@ class EnsembleOfBinaryClassifiers(object):
                 label_to_items[label].add(item)
         label_to_items = dict(label_to_items)
 
-        # Compute the positive items for each label
-        print "Generating sets of positive examples..."
+        # Train a classifier for each label
         self.label_to_pos_items = {}
-        for label in label_to_items:
-            pos_items = _compute_positive_examples(
+        self.label_to_neg_items = {}
+        self.label_to_classifier = {}
+
+        self.trivial_labels = set()
+        for label_i, label in enumerate(label_to_items.keys()):
+            pos_items, neg_items = self._compute_training_set(
                 label,
+                train_items,
                 label_to_items,
-                self.label_graph
+                item_to_labels,
+                label_graph
             )
             self.label_to_pos_items[label] = pos_items
-
-        # Compute the negative items for each label
-        print "Generating sets of negative examples..."
-        self.label_to_neg_items = {}
-        for label in label_to_items:
-            neg_items = _compute_negative_examples(
-                label,
-                self.train_items,
-                self.label_to_pos_items[label],
-                item_to_labels,
-                self.label_graph,
-                self.assert_ambig_neg
-            )
             self.label_to_neg_items[label] = neg_items
-          
-        # Train a classifier at each node of the ontology
-        self.trivial_labels = set()
-        self.label_to_classifier = {}
-        for label_i, curr_label in enumerate(label_to_items.keys()):
-            pos_items = self.label_to_pos_items[curr_label]
-            neg_items = self.label_to_neg_items[curr_label]
-
-            pos_classes = list(np.full(len(pos_items), 1))
-            neg_classes = list(np.full(len(neg_items), -1))
-            train_y = np.asarray(pos_classes + neg_classes)
-            train_items = pos_items + neg_items  
- 
-            pos_inds = [
-                item_to_index[item]
-                for item in pos_items
-            ]
-            neg_inds = [
-                item_to_index[item]
-                for item in neg_items
-            ]
-            pos_X = X[pos_inds,:]
-            neg_X = X[neg_inds,:]
-            train_X = np.concatenate([pos_X, neg_X])
-
-            # Train classifier
-            if VERBOSE:
-                print "(%d/%d) training classifier for label %s..." % (
-                    label_i+1, 
-                    len(label_to_items), 
-                    curr_label
-                )
-                print "Number of positive items: %d" % len(pos_items)
-                print "Number of negative items: %d" % len(neg_items)
-
             if len(pos_items) > 0 and len(neg_items) == 0:
-                self.trivial_labels.add(curr_label)
+                print("Skipped training classifier for label {}. No negative examples.".format(label))
+                self.trivial_labels.add(label)
             else:
-                model = bc.build_binary_classifier(
+                print('({}/{})'.format(label_i+1, len(label_to_items)))
+                model = _train_classifier(
+                    label,
                     self.binary_classif_algo, 
-                    self.binary_classif_params
+                    self.binary_classif_params,
+                    pos_items, 
+                    neg_items,
+                    item_to_index,
+                    X
                 )
-                model.fit(train_X, train_y)
-                self.label_to_classifier[curr_label] = model
+                self.label_to_classifier[label] = model
 
-    def predict(self, X, test_items):
+    def _compute_training_set(
+            self, 
+            label,    
+            train_items,
+            label_to_items,
+            item_to_labels,
+            label_graph
+        ):
+        pos_items = _compute_positive_examples(
+            label,
+            label_to_items,
+            label_graph
+        )
+        neg_items = _compute_negative_examples(
+            label,
+            train_items,
+            pos_items,
+            item_to_labels,
+            label_graph,
+            self.assert_ambig_neg
+        )
+        return pos_items, neg_items
+        
+
+    def predict(self, X, test_items, verbose=True):
         label_to_scores = {}
         all_labels = sorted(self.label_to_classifier.keys())
         mat = []
         for label in all_labels:
-            print "Making predictions for label %s" % label
+            if verbose:
+                print("Making predictions for label {}".format(label))
             classifier = self.label_to_classifier[label]
             pos_index = 0 
             for index, clss in enumerate(classifier.classes_):
@@ -172,6 +162,36 @@ class EnsembleOfBinaryClassifiers(object):
             columns=all_labels
         )
         return df, df
+
+
+def _train_classifier(label, binary_classif_algo, binary_classif_params, pos_items, neg_items, item_to_index, X):
+        if VERBOSE:
+            print("Training classifier for label {}...".format(label))
+            print("Number of positive items: {}".format(len(pos_items)))
+            print("Number of negative items: {}".format(len(neg_items)))
+        pos_classes = list(np.full(len(pos_items), 1))
+        neg_classes = list(np.full(len(neg_items), -1))
+        train_y = np.asarray(pos_classes + neg_classes)
+        train_items = pos_items + neg_items
+
+        pos_inds = [
+            item_to_index[item]
+            for item in pos_items
+        ]
+        neg_inds = [
+            item_to_index[item]
+            for item in neg_items
+        ]
+        pos_X = X[pos_inds,:]
+        neg_X = X[neg_inds,:]
+        train_X = np.concatenate([pos_X, neg_X])
+        assert len(pos_items) > 0 and len(neg_items) > 0
+        model = bc.build_binary_classifier(
+            binary_classif_algo,
+            binary_classif_params
+        )
+        model.fit(train_X, train_y)
+        return model
 
 
 def _compute_positive_examples(

@@ -17,7 +17,7 @@ import pkg_resources as pr
 
 resource_package = __name__
 
-import kallisto_quantified_data_manager_hdf5 as kqdm
+import kallisto_quantified_data_manager_hdf5_py3 as kqdm
 
 def main():
     usage = ""
@@ -34,12 +34,12 @@ def _retrieve_tpm(exp_accs):
     """
     TPM features from my Kallisto-quantified data
     """
-    print "loading TPM for {} experiments...".format(len(exp_accs))
+    print("loading TPM for {} experiments...".format(len(exp_accs)))
     returned_exp_accs, data_matrix, gene_ids = kqdm.get_gene_tpms_for_experiments(
         exp_accs
     )
     assert frozenset(returned_exp_accs) == frozenset(exp_accs)
-    print "done."
+    print("done.")
     return returned_exp_accs, data_matrix, gene_ids
 
 

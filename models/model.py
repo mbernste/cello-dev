@@ -4,11 +4,13 @@ import numpy as np
 import json
 import random
 
-from one_nn import OneNN
-from ensemble_binary_classifiers import EnsembleOfBinaryClassifiers 
-from cascaded_discriminative_classifiers import CascadedDiscriminativeClassifiers 
-from isotonic_regression import IsotonicRegression
-from true_path_rule import TruePathRule
+from .one_nn import OneNN
+from .ensemble_binary_classifiers import EnsembleOfBinaryClassifiers 
+from .cascaded_discriminative_classifiers import CascadedDiscriminativeClassifiers 
+from .isotonic_regression import IsotonicRegression
+from .true_path_rule import TruePathRule
+from .scale import Scale
+from .pca import PCA
 
 CLASSIFIERS = {
     'onn': OneNN,
@@ -18,20 +20,21 @@ CLASSIFIERS = {
     'true_path_rule': TruePathRule
 }
 
+PREPROCESSORS = {
+    'scale': Scale,
+    'pca': PCA
+}
+
 class Model:
-    def __init__(self, classifier, dim_reductor=None):
+    def __init__(self, classifier, preprocessors=None):
         """
         Parameters:
             classifier: a classifier object that performs
                 supervised classification
-            dim_reductor: a dimensonality reduction object
-                that performs unsupervised dimensionality
-                reduction. If this is supplied, all training
-                and classification will be performed on the
-                reduced dimensional representation of instances
-                as learned by this algorithm.
+            preprocessors: a list of preprocessor algorithms
+                for transforming the data before fitting
         """
-        self.dim_reductor = dim_reductor
+        self.preprocessors = preprocessors
         self.classifier = classifier
 
     def fit(
@@ -58,11 +61,12 @@ class Model:
                 labels
             features (list): a M-length list of feature names 
         """
-        if self.dim_reductor:
-            self.dim_reductor.fit(train_X)
-            train_X = self.dim_reductor.transform(
-                train_X
-            )
+        if self.preprocessors:
+            for prep in self.preprocessors:
+                prep.fit(train_X)
+                train_X = prep.transform(
+                    train_X
+                )
         self.classifier.fit(
             train_X,
             train_items,
@@ -75,8 +79,9 @@ class Model:
         )
 
     def predict(self, X, test_items):
-        if self.dim_reductor:
-            X = self.dim_reductor.transform(X)
+        if self.preprocessors:
+            for prep in self.preprocessors:
+                X = prep.transform(X)
         return self.classifier.predict(X, test_items)
 
 
@@ -87,8 +92,8 @@ def train_model(
         train_items, 
         item_to_labels,
         label_graph,
-        dim_reductor_name=None,
-        dim_reductor_params=None,
+        preprocessor_names=None,
+        preprocessor_params=None,
         verbose=False,
         item_to_group=None,
         tmp_dir=None,
@@ -111,13 +116,17 @@ def train_model(
             then the files are placed in this directory
     """
     classifier = CLASSIFIERS[classifier_name](params)
-    dim_reductor = None
-    if dim_reductor_name:
-        assert not dim_reductor_params is None
-        dim_reductor = DIM_REDUCTORS[dim_reductor_name](dim_reductor_params)
+    preps = None
+    if preprocessor_names:
+        assert preprocessor_params is not None
+        assert len(preprocessor_params) == len(preprocessor_names)
+        preps = [
+            PREPROCESSORS[prep_name](prep_params)
+            for prep_name, prep_params in zip(preprocessor_names, preprocessor_params)
+        ]
     model = Model(
         classifier,
-        dim_reductor=dim_reductor
+        preprocessors=preps
     )
     model.fit(
         train_X,

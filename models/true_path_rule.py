@@ -4,7 +4,7 @@
 import pandas as pd
 import dill
 
-from ensemble_binary_classifiers import EnsembleOfBinaryClassifiers 
+from .ensemble_binary_classifiers import EnsembleOfBinaryClassifiers 
 from graph_lib import graph
    
 class TruePathRule():

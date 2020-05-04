@@ -3,10 +3,10 @@ import h5py
 import json
 
 from common import the_ontology
+from common import ontology_utils
 import graph_lib
 from graph_lib import graph
 from onto_lib import ontology_graph
-import label_data
 
 DATA_SET_TO_TARGET_TERM = {
     'CD19_B_cells': 'CL:0000236',                  # B cell
@@ -50,7 +50,7 @@ def main():
         all_labels.update(labels)
 
     # Generate label-graph
-    label_graph = label_data._ontology_subgraph_spanning_terms(
+    label_graph = ontology_utils.ontology_subgraph_spanning_terms(
         all_labels,
         og
     )
@@ -63,7 +63,7 @@ def main():
                 'labels_config': {},
                 'label_graph': {
                     source: list(targets)
-                    for source, targets in label_graph.source_to_targets.iteritems()
+                    for source, targets in label_graph.source_to_targets.items()
                 },
                 'labels': cell_id_to_labels
             },

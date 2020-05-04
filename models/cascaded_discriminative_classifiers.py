@@ -7,7 +7,7 @@ import numpy as np
 import math
 import pandas as pd
 
-import binary_classifier as bc
+from . import binary_classifier as bc
 
 POS_CLASS = 1
 NEG_CLASS = 0
@@ -134,13 +134,13 @@ class CascadedDiscriminativeClassifiers(object):
             # Train classifier
             #if verbose:
             if True:
-                print "(%d/%d) training classifier for label %s..." % (
+                print("({}/{}) training classifier for label {}...".format(
                     label_i+1, 
                     len(self.label_to_items), 
                     curr_label
-                )
-                print "Number of positive items: %d" % len(pos_items)
-                print "Number of negative items: %d" % len(neg_items)
+                ))
+                print("Number of positive items: {}".format(len(pos_items)))
+                print("Number of negative items: {}".format(len(neg_items)))
             if len(pos_items) > 0 and len(neg_items) == 0:
                 self.trivial_labels.add(curr_label)
             else:
@@ -156,7 +156,7 @@ class CascadedDiscriminativeClassifiers(object):
         # Run all of the classifiers
         label_to_cond_log_probs = {}
         for label in self.label_graph.get_all_nodes():
-            print 'Running conditional-classifier for label %s' % label
+            print('Running conditional-classifier for label {}'.format(label))
             if label in self.label_to_classifier:
                 classifier = self.label_to_classifier[label]
                 pos_indices = [
@@ -180,8 +180,8 @@ class CascadedDiscriminativeClassifiers(object):
         # Compute the marginals for each label by multiplying all of the conditional
         # probabilities from that label up to the root of the DAG
         label_to_marginals = {}
-        for label, log_probs in label_to_cond_log_probs.iteritems():
-            print 'Aggregating classifier outputs for label %s' % label
+        for label, log_probs in label_to_cond_log_probs.items():
+            print('Aggregating classifier outputs for label {}'.format(label))
             products = np.zeros(len(X))
             anc_labels = set(self.label_graph.ancestor_nodes(label)) - set([label])
             for anc_label in anc_labels:
@@ -204,20 +204,6 @@ class CascadedDiscriminativeClassifiers(object):
         scores_df = scores_df[sorted_labels]
         return confidence_df, scores_df
 
-        # Gather the results
-        #label_to_marginal_list = []
-        #label_to_cond_prob_list = []
-        #for query_i in range(len(X)):
-        #    label_to_marginal = {}
-        #    for label, marginals in label_to_marginals.iteritems():
-        #        label_to_marginal[label] = math.exp(marginals[query_i])
-        #    label_to_cond_prob = {}
-        #    for label, log_probs in label_to_cond_log_probs.iteritems():
-        #        label_to_cond_prob[label] = math.exp(log_probs[query_i])
-        #    label_to_marginal_list.append(label_to_marginal)
-        #    label_to_cond_prob_list.append(label_to_cond_prob)
-        #return label_to_marginal_list, label_to_cond_prob_list
-   
 
 def _compute_training_sets_assert_ambiguous_negative(
         label_to_items,
@@ -227,7 +213,7 @@ def _compute_training_sets_assert_ambiguous_negative(
     # Compute the positive items for each label
     # This set consists of all items labelled with a 
     # descendent of the label
-    print "Computing positive labels..."
+    print("Computing positive labels...")
     label_to_pos_items = {}
     for curr_label in label_to_items:
         positive_items = label_to_items[curr_label].copy()
@@ -236,30 +222,20 @@ def _compute_training_sets_assert_ambiguous_negative(
             if desc_label in label_to_items:
                 positive_items.update(label_to_items[desc_label])
         label_to_pos_items[curr_label] = list(positive_items)
-        print "Label %s, positive items (%d): %s" % (
-            curr_label, 
-            len(label_to_pos_items[curr_label]), 
-            label_to_pos_items[curr_label]
-        )
 
     # Compute the negative items for each label
     # This set consists of all items that are labelled with the
     # the same parents, but not with the current label
-    print "Computing negative labels..."
+    print("Computing negative labels...")
     label_to_neg_items = {}
     for curr_label in label_to_items:
         negative_items = set()
         parent_labels = set(label_graph.target_to_sources[curr_label])
-        for item, labels in item_to_labels.iteritems():
+        for item, labels in item_to_labels.items():
              if frozenset(set(labels) & parent_labels) == frozenset(parent_labels):
                 negative_items.add(item)
         negative_items -= set(label_to_pos_items[curr_label])
         label_to_neg_items[curr_label] = list(negative_items)
-        print "Label %s, negative items (%d): %s" % (
-            curr_label, 
-            len(label_to_neg_items[curr_label]), 
-            label_to_neg_items[curr_label]
-        )
     return label_to_pos_items, label_to_neg_items
     
         
@@ -271,7 +247,7 @@ def _compute_training_sets_remove_ambiguous(
     # Compute the positive items for each label
     # This set consists of all items labelled with a 
     # descendent of the label
-    print "Computing positive labels..."
+    print("Computing positive labels...")
     label_to_pos_items = {}
     for curr_label in label_to_items:
         positive_items = label_to_items[curr_label].copy()
@@ -280,21 +256,21 @@ def _compute_training_sets_remove_ambiguous(
             if desc_label in label_to_items:
                 positive_items.update(label_to_items[desc_label])
         label_to_pos_items[curr_label] = list(positive_items)
-        print "Label %s, positive items (%d): %s" % (
+        print("Label {}, positive items ({}): {}".format(
             curr_label, 
             len(label_to_pos_items[curr_label]), 
             label_to_pos_items[curr_label]
-        )
+        ))
 
     # Compute the negative items for each label
     # This set consists of all items that are labelled with the
     # the same parents, but not with the current label, 
-    print "Computing negative labels..."
+    print("Computing negative labels...")
     label_to_neg_items = {}
     for curr_label in label_to_items:
         negative_items = set()
         parent_labels = set(label_graph.target_to_sources[curr_label])
-        for item, labels in item_to_labels.iteritems():
+        for item, labels in item_to_labels.items():
              if frozenset(labels & parent_labels) == frozenset(parent_labels):
                 negative_items.add(item)
         negative_items -= set(label_to_pos_items[curr_label])
@@ -310,11 +286,11 @@ def _compute_training_sets_remove_ambiguous(
         negative_items -= ambig_items
 
         label_to_neg_items[curr_label] = list(negative_items)
-        print "Label %s, negative items (%d): %s" % (
+        print("Label {}, negative items ({}): {}".format(
             curr_label, 
             len(label_to_neg_items[curr_label]), 
             label_to_neg_items[curr_label]
-        )
-        print "Ambiguous items (%d): %s" % (len(ambig_items), ambig_items)
+        ))
+        print("Ambiguous items ({}): {}".format(len(ambig_items), ambig_items))
     return label_to_pos_items, label_to_neg_items
 

@@ -10,7 +10,7 @@ from scipy.stats import entropy
 import numpy as np
 import math
 
-import model_utils
+from . import model_utils
 
 def main():
     a = [0.3, 0.2, 0.5]
@@ -33,7 +33,7 @@ def main():
     }
     model = OneNN('correlation')
     model.fit(feat_vecs, items, item_to_labels)
-    print model.predict([[10,10,10,20,30]])
+    print(model.predict([[10,10,10,20,30]]))
 
 
 def jensen_shannon(a, b):
@@ -65,7 +65,8 @@ class OneNN:
             label_graph,
             item_to_group=None,
             verbose=False,
-            features=None
+            features=None,
+            model_dependency=None # Unused
         ):
         self.items = train_items
         self.item_to_labels = item_to_labels
@@ -79,7 +80,7 @@ class OneNN:
         self.features = features
 
     def predict(self, X, test_items):
-        print 'Finding nearest neighbors for %d samples...' % len(X)
+        print('Finding nearest neighbors for {} samples...'.format(len(X)))
         neighb_dists, neighb_sets = self.model.kneighbors(
             X, 
             n_neighbors=1, 

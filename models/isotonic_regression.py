@@ -7,7 +7,7 @@ from quadprog import solve_qp
 import dill
 import pandas as pd
 
-from ensemble_binary_classifiers import EnsembleOfBinaryClassifiers 
+from .ensemble_binary_classifiers import EnsembleOfBinaryClassifiers 
 
 class IsotonicRegression():
     def __init__(
@@ -99,7 +99,7 @@ class IsotonicRegression():
                 dtype=np.double
             )
             #predictions = np.array(predictions, dtype=np.double)
-            print "Running solver on item %d/%d..." % (q_i+1, len(X))
+            print("Running solver on item {}/{}...".format(q_i+1, len(X)))
             xf, f, xu, iters, lagr, iact = solve_qp(
                 Q, 
                 predictions, 

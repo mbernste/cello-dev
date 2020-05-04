@@ -10,9 +10,17 @@ IR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS = 'FRAMEWORK_ir.BINARY_lr.PENALTY_l2
 CDC_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS = 'FRAMEWORK_cdc.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm'
 TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS = 'FRAMEWORK_tpr.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm'
 
+
+PCA_3000_IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS = 'FRAMEWORK_ind.PREP_pca_3000.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm'
+PCA_3000_CLR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS = 'FRAMEWORK_cdc.PREP_pca_3000.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm'
+
 IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x = 'FRAMEWORK_ind.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm_10x_genes'
 CDC_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x = 'FRAMEWORK_cdc.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm_10x_genes'
 IR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x = 'FRAMEWORK_ir.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm_10x_genes'
+TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x = 'FRAMEWORK_tpr.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm_10x_genes'
+
+PCA_3000_IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x = 'FRAMEWORK_ind.PREP_pca_3000.BINARY_lr.PENALTY_l2.SOLVER_liblinear.INTERCEPTSCALE_1000.DOWNWEIGHTBYCLASS_true.FEATS_log_tpm_10x_genes'
+
 
 #################################################################################################################
 #   Train and test 1NN
@@ -45,7 +53,7 @@ rule train_and_apply_one_nn:
                 train='train_set.untampered_bulk_primary_cells_with_data',
                 algo=ONE_NN_CORRELATION_LOG_TPM
             ),
-            'python2.7 {src}/apply_model.py -t {env_dir}/datasets/{train} -p {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{test} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
+            'python {src}/apply_model.py -t {env_dir}/datasets/{train} -p {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{test} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='train_set.untampered_bulk_primary_cells_with_data',
@@ -84,7 +92,7 @@ rule train_training_ind_downweight_by_class:
                 train='train_set.untampered_bulk_primary_cells_with_data',
                 algo=IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
             ),
-            'python2.7 {src}/train_model.py {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
+            'python {src}/train_model.py {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='train_set.untampered_bulk_primary_cells_with_data',
@@ -122,7 +130,7 @@ rule test_test_ind_downweight_by_class:
                 train='train_set.untampered_bulk_primary_cells_with_data',
                 algo=IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
             ),
-            'python2.7 {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
+            'python {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='train_set.untampered_bulk_primary_cells_with_data',
@@ -133,6 +141,85 @@ rule test_test_ind_downweight_by_class:
         ]
         for c in commands:
             shell(c)    
+
+
+####################################################
+##   Algorithm: Independent classifiers
+##   Features: log-TPM
+##   Training set: bulk training set
+##   Test set: bulk test set
+#   Preprocess: PCA - 3,000 components
+#####################################################
+
+rule train_training_pca_3000_ind_downweight_by_class:
+    input:
+        '{}/datasets/train_set.untampered_bulk_primary_cells_with_data/labels.json'.format(config['env_dir']),
+        '{env}/datasets/train_set.untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm'
+        )
+    output:
+        '{env_dir}/trained_models/{train}/{algo}/model.dill'.format(
+            env_dir=config['env_dir'],
+            train='train_set.untampered_bulk_primary_cells_with_data',
+            algo=PCA_3000_IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+        )
+    run:
+        commands = [
+            'mkdir -p {env_dir}/trained_models/{train}/{algo}'.format(
+                env_dir=config['env_dir'],
+                train='train_set.untampered_bulk_primary_cells_with_data',
+                algo=PCA_3000_IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+            ),
+            'python {src}/train_model.py {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
+                env_dir=config['env_dir'],
+                src=config['cello_dev'],
+                train='train_set.untampered_bulk_primary_cells_with_data',
+                algo=PCA_3000_IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+            )
+
+        ]
+        for c in commands:
+            shell(c)
+
+rule test_test_pca_3000_ind_downweight_by_class:
+    input:
+        test_label='{}/datasets/test_set.untampered_bulk_primary_cells_with_data/labels.json'.format(config['env_dir']),
+        test_data='{env}/datasets/test_set.untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm'
+        ),
+        model='{env_dir}/trained_models/{train}/{algo}/model.dill'.format(
+            env_dir=config['env_dir'],
+            train='train_set.untampered_bulk_primary_cells_with_data',
+            algo=PCA_3000_IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+        )
+    output:
+        '{env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}/classification_results.tsv'.format(
+            env_dir=config['env_dir'],
+            train='train_set.untampered_bulk_primary_cells_with_data',
+            test='test_set.untampered_bulk_primary_cells_with_data',
+            algo=PCA_3000_IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+        )
+    run:
+        commands = [
+            'mkdir -p {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
+                env_dir=config['env_dir'],
+                test='test_set.untampered_bulk_primary_cells_with_data',
+                train='train_set.untampered_bulk_primary_cells_with_data',
+                algo=PCA_3000_IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+            ),
+            'python {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
+                env_dir=config['env_dir'],
+                src=config['cello_dev'],
+                train='train_set.untampered_bulk_primary_cells_with_data',
+                test='test_set.untampered_bulk_primary_cells_with_data',
+                feats='log_tpm',
+                algo=PCA_3000_IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+            )
+        ]
+        for c in commands:
+            shell(c)
 
 ####################################################
 #   Algorithm: Isotonic regression
@@ -166,7 +253,7 @@ rule train_training_ir_downweight_by_class:
                 train='train_set.untampered_bulk_primary_cells_with_data',
                 algo=IR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
             ),
-            'python2.7 {src}/train_model.py -m {{input.model}} {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
+            'python {src}/train_model.py -m {{input.model}} {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='train_set.untampered_bulk_primary_cells_with_data',
@@ -204,7 +291,7 @@ rule test_test_ir_downweight_by_class:
                 train='train_set.untampered_bulk_primary_cells_with_data',
                 algo=IR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
             ),
-            'python2.7 {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
+            'python {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='train_set.untampered_bulk_primary_cells_with_data',
@@ -247,7 +334,7 @@ rule train_training_tpr_downweight_by_class:
                 train='train_set.untampered_bulk_primary_cells_with_data',
                 algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
             ),
-            'python2.7 {src}/train_model.py -m {{input.model}} {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
+            'python {src}/train_model.py -m {{input.model}} {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='train_set.untampered_bulk_primary_cells_with_data',
@@ -285,7 +372,7 @@ rule test_test_tpr_downweight_by_class:
                 train='train_set.untampered_bulk_primary_cells_with_data',
                 algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
             ),
-            'python2.7 {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
+            'python {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='train_set.untampered_bulk_primary_cells_with_data',
@@ -324,7 +411,7 @@ rule train_training_clr_downweight_by_class:
                 train='train_set.untampered_bulk_primary_cells_with_data',
                 algo=CDC_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
             ),
-            'python2.7 {src}/train_model.py {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
+            'python {src}/train_model.py {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='train_set.untampered_bulk_primary_cells_with_data',
@@ -363,7 +450,7 @@ rule test_test_clr_downweight_by_class:
                 train='train_set.untampered_bulk_primary_cells_with_data',
                 algo=CDC_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
             ),
-            'python2.7 {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
+            'python {src}/apply_model.py -c 0.5 -m {{input.model}} {env_dir}/datasets/{test} {feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='train_set.untampered_bulk_primary_cells_with_data',
@@ -374,6 +461,85 @@ rule test_test_clr_downweight_by_class:
         ]
         for c in commands:
             shell(c)
+
+
+####################################################
+#   Algorithm: Cascaded logistic regression
+#   Features: log-TPM
+#   Training set: bulk training set
+#   Test set: bulk test set
+#   Preprocess: PCA - 3,000 components
+####################################################
+rule train_pca_3000_training_clr_downweight_by_class:
+    input:
+        '{}/datasets/train_set.untampered_bulk_primary_cells_with_data/labels.json'.format(config['env_dir']),
+        '{env}/datasets/train_set.untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm'
+        )
+    output:
+        '{env_dir}/trained_models/{train}/{algo}/model.dill'.format(
+            env_dir=config['env_dir'],
+            train='train_set.untampered_bulk_primary_cells_with_data',
+            algo=PCA_3000_CLR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+        )
+    run:
+        commands = [
+            'mkdir -p {env_dir}/trained_models/{train}/{algo}'.format(
+                env_dir=config['env_dir'],
+                train='train_set.untampered_bulk_primary_cells_with_data',
+                algo=PCA_3000_CLR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+            ),
+            'python {src}/train_model.py {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
+                env_dir=config['env_dir'],
+                src=config['cello_dev'],
+                train='train_set.untampered_bulk_primary_cells_with_data',
+                algo=PCA_3000_CLR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+            )
+
+        ]
+        for c in commands:
+            shell(c)
+
+rule test_test_pca_3000_clr_downweight_by_class:
+    input:
+        test_label='{}/datasets/test_set.untampered_bulk_primary_cells_with_data/labels.json'.format(config['env_dir']),
+        test_data='{env}/datasets/test_set.untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm'
+        ),
+        model='{env_dir}/trained_models/{train}/{algo}/model.dill'.format(
+            env_dir=config['env_dir'],
+            train='train_set.untampered_bulk_primary_cells_with_data',
+            algo=PCA_3000_CLR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+        )
+    output:
+        '{env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}/classification_results.tsv'.format(
+            env_dir=config['env_dir'],
+            train='train_set.untampered_bulk_primary_cells_with_data',
+            test='test_set.untampered_bulk_primary_cells_with_data',
+            algo=PCA_3000_CLR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+        )
+    run:
+        commands = [
+            'mkdir -p {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
+                env_dir=config['env_dir'],
+                test='test_set.untampered_bulk_primary_cells_with_data',
+                train='train_set.untampered_bulk_primary_cells_with_data',
+                algo=PCA_3000_CLR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+            ),
+            'python {src}/apply_model.py -c 0.5 -m {{input.model}} {env_dir}/datasets/{test} {feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_TEST_{test}/{algo}'.format(
+                env_dir=config['env_dir'],
+                src=config['cello_dev'],
+                train='train_set.untampered_bulk_primary_cells_with_data',
+                test='test_set.untampered_bulk_primary_cells_with_data',
+                feats='log_tpm',
+                algo=PCA_3000_CLR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS
+            )
+        ]
+        for c in commands:
+            shell(c)
+
 
 ########################## 10x Experiments #######################################
 
@@ -403,7 +569,7 @@ rule train_all_ind_downweight_by_class_10x_genes:
                 train='untampered_bulk_primary_cells_with_data',
                 algo=IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
             ),
-            'python2.7 {src}/train_model.py {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
+            'python {src}/train_model.py {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='untampered_bulk_primary_cells_with_data',
@@ -446,7 +612,7 @@ rule test_10x_ind_downweight_by_class:
                 test_feats='log_cpm',
                 algo=IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
             ),
-            'python2.7 {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
+            'python {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='untampered_bulk_primary_cells_with_data',
@@ -490,7 +656,7 @@ rule test_10x_magic_ind_downweight_by_class:
                 test_feats='log_cpm_magic',
                 algo=IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
             ),
-            'python2.7 {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
+            'python {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='untampered_bulk_primary_cells_with_data',
@@ -534,7 +700,7 @@ rule test_10x_cluster_0_8_magic_ind_downweight_by_class:
                 test_feats='log_cpm_leiden_0_8_magic',
                 algo=IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
             ),
-            'python2.7 {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
+            'python {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='untampered_bulk_primary_cells_with_data',
@@ -578,7 +744,7 @@ rule test_10x_cluster_1_6_magic_ind_downweight_by_class:
                 test_feats='log_cpm_leiden_1_6_magic',
                 algo=IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
             ),
-            'python2.7 {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
+            'python {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='untampered_bulk_primary_cells_with_data',
@@ -622,7 +788,7 @@ rule test_10x_cluster_3_2_magic_ind_downweight_by_class:
                 test_feats='log_cpm_leiden_3_2_magic',
                 algo=IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
             ),
-            'python2.7 {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
+            'python {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='untampered_bulk_primary_cells_with_data',
@@ -635,6 +801,44 @@ rule test_10x_cluster_3_2_magic_ind_downweight_by_class:
         for c in commands:
             shell(c)
 
+
+#####################################################
+##   Algorithm: Independent classifiers
+##   Features: log-TPM, 10x genes
+##   Training set: full bulk dataset
+##   Test set: Zheng 10x PBMC, 2000 cells per type
+#   Preprocess: PCA - 3,000 components
+######################################################
+rule train_all_pca_3000_ind_downweight_by_class_10x_genes:
+    input:
+        '{}/datasets/untampered_bulk_primary_cells_with_data/labels.json'.format(config['env_dir']),
+        '{env}/datasets/untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm_10x_genes'
+        )
+    output:
+        '{env_dir}/trained_models/{train}/{algo}/model.dill'.format(
+            env_dir=config['env_dir'],
+            train='untampered_bulk_primary_cells_with_data',
+            algo=PCA_3000_IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
+        )
+    run:
+        commands = [
+            'mkdir -p {env_dir}/trained_models/{train}/{algo}'.format(
+                env_dir=config['env_dir'],
+                train='untampered_bulk_primary_cells_with_data',
+                algo=PCA_3000_IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
+            ),
+            'python {src}/train_model.py {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
+                env_dir=config['env_dir'],
+                src=config['cello_dev'],
+                train='untampered_bulk_primary_cells_with_data',
+                algo=PCA_3000_IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
+            )
+
+        ]
+        for c in commands:
+            shell(c)
 
 #######################################################
 #   Algorithm: Isotonic Regression
@@ -663,7 +867,7 @@ rule train_all_ir_downweight_by_class_10x_genes:
                 train='untampered_bulk_primary_cells_with_data',
                 algo=IR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
             ),
-            'python2.7 {src}/train_model.py -m {{input.model}} {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
+            'python {src}/train_model.py -m {{input.model}} {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='untampered_bulk_primary_cells_with_data',
@@ -706,7 +910,7 @@ rule test_ir_10x_cluster_0_8_magic_ind_downweight_by_class:
                 test_feats='log_cpm_leiden_0_8_magic',
                 algo=IR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
             ),
-            'python2.7 {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
+            'python {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='untampered_bulk_primary_cells_with_data',
@@ -714,6 +918,89 @@ rule test_ir_10x_cluster_0_8_magic_ind_downweight_by_class:
                 train_feats='log_tpm',
                 test_feats='log_cpm_leiden_0_8_magic',
                 algo=IR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
+            )
+        ]
+        for c in commands:
+            shell(c)
+
+
+#######################################################
+#   Algorithm: True Path Rule
+#   Features: log-TPM, 10x genes
+#   Training set: full bulk dataset
+#   Test set: Zheng 10x PBMC, 2000 cells per type
+########################################################
+rule train_all_tpr_downweight_by_class_10x_genes:
+    input:
+        labels='{}/datasets/untampered_bulk_primary_cells_with_data/labels.json'.format(config['env_dir']),
+        model='{env_dir}/trained_models/{train}/{algo}/model.dill'.format(
+            env_dir=config['env_dir'],
+            train='untampered_bulk_primary_cells_with_data',
+            algo=IND_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
+        )
+    output:
+        '{env_dir}/trained_models/{train}/{algo}/model.dill'.format(
+            env_dir=config['env_dir'],
+            train='untampered_bulk_primary_cells_with_data',
+            algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
+        )
+    run:
+        commands = [
+            'mkdir -p {env_dir}/trained_models/{train}/{algo}'.format(
+                env_dir=config['env_dir'],
+                train='untampered_bulk_primary_cells_with_data',
+                algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
+            ),
+            'python {src}/train_model.py -m {{input.model}} {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
+                env_dir=config['env_dir'],
+                src=config['cello_dev'],
+                train='untampered_bulk_primary_cells_with_data',
+                algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
+            )
+
+        ]
+        for c in commands:
+            shell(c)
+
+rule test_tpr_10x_cluster_0_8_magic_ind_downweight_by_class:
+    input:
+        test_label='{}/datasets/zheng_10x_PBMC_2000_cells_per_type/labels.json'.format(config['env_dir']),
+        test_data='{env}/datasets/zheng_10x_PBMC_2000_cells_per_type/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_cpm_leiden_0_8_magic'
+        ),
+        model='{env_dir}/trained_models/{train}/{algo}/model.dill'.format(
+            env_dir=config['env_dir'],
+            train='untampered_bulk_primary_cells_with_data',
+            algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
+        )
+    output:
+        '{env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}/classification_results.tsv'.format(
+            env_dir=config['env_dir'],
+            train='untampered_bulk_primary_cells_with_data',
+            test='zheng_10x_PBMC_2000_cells_per_type',
+            train_feats='log_tpm',
+            test_feats='log_cpm_leiden_0_8_magic',
+            algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
+        )
+    run:
+        commands = [
+            'mkdir -p {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
+                env_dir=config['env_dir'],
+                test='zheng_10x_PBMC_2000_cells_per_type',
+                train='untampered_bulk_primary_cells_with_data',
+                train_feats='log_tpm',
+                test_feats='log_cpm_leiden_0_8_magic',
+                algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
+            ),
+            'python {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
+                env_dir=config['env_dir'],
+                src=config['cello_dev'],
+                train='untampered_bulk_primary_cells_with_data',
+                test='zheng_10x_PBMC_2000_cells_per_type',
+                train_feats='log_tpm',
+                test_feats='log_cpm_leiden_0_8_magic',
+                algo=TPR_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
             )
         ]
         for c in commands:
@@ -746,7 +1033,7 @@ rule train_all_cdc_downweight_by_class_10x_genes:
                 train='untampered_bulk_primary_cells_with_data',
                 algo=CDC_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
             ),
-            'python2.7 {src}/train_model.py {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
+            'python {src}/train_model.py {src}/training_parameter_sets/{algo}.json {env_dir}/datasets/{train} -o {env_dir}/trained_models/{train}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='untampered_bulk_primary_cells_with_data',
@@ -788,7 +1075,7 @@ rule test_cdc_10x_cluster_0_8_magic_ind_downweight_by_class:
                 test_feats='log_cpm_leiden_0_8_magic',
                 algo=CDC_LR_L2_LIBLINEAR_1000_DOWNWEIGHT_BY_CLASS_10x
             ),
-            'python2.7 {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
+            'python {src}/apply_model.py -m {{input.model}} {env_dir}/datasets/{test} {test_feats} -o {env_dir}/results/train_test_experiments/TRAIN_{train}_FEATS_{train_feats}_TEST_{test}_FEATS_{test_feats}/{algo}'.format(
                 env_dir=config['env_dir'],
                 src=config['cello_dev'],
                 train='untampered_bulk_primary_cells_with_data',

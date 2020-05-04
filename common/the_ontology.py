@@ -1,4 +1,4 @@
-from onto_lib import load_ontology
+from onto_lib_py3 import load_ontology
 
 GO_ONT_CONFIG_ID = '18'
 UNIT_OG_ID = '7'
@@ -129,7 +129,7 @@ def main():
     #print og.id_to_term['CL:0000542']
 
     og = go_ontology()
-    print og.id_to_term['GO:0002312']
+    print(og.id_to_term['GO:0002312'])
 
 if __name__ == "__main__":
     main()
