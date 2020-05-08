@@ -112,6 +112,12 @@ def main():
     )
  
     # Binarize the classifications 
+    if options.classification_threshold_file:
+        label_to_thresh_df = pd.read_csv(options.classification_threshold_file, sep='\t', index_col=0)
+        label_to_thresh = {
+            label: label_to_thresh_df.loc[label]['threshold']
+            for label in label_to_thresh_df.index
+        }
     if options.classification_threshold \
         or options.classification_threshold_file:
         if options.classification_threshold:
@@ -121,8 +127,11 @@ def main():
             label_to_thresh = defaultdict(lambda: classif_thresh)
         if options.classification_threshold_file:
             assert options.classification_threshold is None
-            with open(options.classification_threshold_file, 'r') as f:
-                label_to_thresh = json.load(f)
+            label_to_thresh_df = pd.read_csv(options.classification_threshold_file, sep='\t', index_col=0)
+            label_to_thresh = {
+                label: label_to_thresh_df.loc[label]['threshold']
+                for label in label_to_thresh_df.index
+            }
             label_graph = mod.classifier.label_graph
         binary_df = _binarize_classifiations(
             confidence_df, 
@@ -136,8 +145,12 @@ def main():
 
  
 def _binarize_classifiations(confidence_df, label_to_thresh, label_graph):
+    print('Binarizing classifications...')
     da = []
-    for exp in confidence_df.index:
+    the_labels = sorted(set(confidence_df.columns) & set(label_to_thresh.keys()))
+    for exp_i, exp in enumerate(confidence_df.index):
+        if (exp_i+1) % 100 == 0:
+            print('Processed {} samples.'.format(exp_i+1))
         # Map each label to its classification-score 
         label_to_conf = {
             label: confidence_df.loc[exp][label]
@@ -147,7 +160,7 @@ def _binarize_classifiations(confidence_df, label_to_thresh, label_graph):
         label_to_is_above = {
             label: int(conf > label_to_thresh[label])
             for label, conf in label_to_conf.items()
-            if label in confidence_df.columns
+            if label in the_labels
         }
         label_to_bin= {
             label: is_above
@@ -161,12 +174,12 @@ def _binarize_classifiations(confidence_df, label_to_thresh, label_graph):
                     label_to_bin[desc_label] = int(False)
         da.append([
             label_to_bin[label]
-            for label in confidence_df.columns
+            for label in the_labels
         ])
     df = pd.DataFrame(
         data=da,
         index=confidence_df.index,
-        columns=confidence_df.columns
+        columns=the_labels
     )
     return df
 
