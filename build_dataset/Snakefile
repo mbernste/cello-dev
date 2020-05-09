@@ -10,16 +10,29 @@ rule all:
             env=config['env_dir'],
             feats='log_tpm'
         ),
+        '{}/datasets/train_set.untampered_bulk_primary_cells_with_data/experiment_to_study.json'.format(config['env_dir']),
+        '{}/datasets/train_set.untampered_bulk_primary_cells_with_data/experiment_to_tags.json'.format(config['env_dir']),
         '{}/datasets/test_set.untampered_bulk_primary_cells_with_data/labels.json'.format(config['env_dir']),
         '{env}/datasets/test_set.untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
             env=config['env_dir'],
             feats='log_tpm'
         ),
+        '{}/datasets/test_set.untampered_bulk_primary_cells_with_data/experiment_to_study.json'.format(config['env_dir']),
+        '{}/datasets/test_set.untampered_bulk_primary_cells_with_data/experiment_to_tags.json'.format(config['env_dir']),
         '{}/datasets/untampered_bulk_primary_cells_with_data/labels.json'.format(config['env_dir']),
         '{env}/datasets/untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
             env=config['env_dir'],
             feats='log_tpm'
-        ) 
+        ),
+        '{}/datasets/untampered_bulk_primary_cells_with_data/experiment_to_study.json'.format(config['env_dir']),
+        '{}/datasets/untampered_bulk_primary_cells_with_data/experiment_to_tags.json'.format(config['env_dir']),
+        '{}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk/labels.json'.format(config['env_dir']),
+        '{env}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm'
+        ),
+        '{}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk/experiment_to_study.json'.format(config['env_dir']),
+        '{}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk/experiment_to_tags.json'.format(config['env_dir'])
 
 #############################################################################
 #   Build the annotation file
@@ -376,7 +389,7 @@ rule metadata_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
         tags='{}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk/experiment_to_tags.json'.format(config['env_dir'])
     run:
         commands = [
-            'mkdir -p {}/datasets/untampered_bulk_primary_cells_with_data'.format(config['env_dir']),
+            'mkdir -p {}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk'.format(config['env_dir']),
             'python {src}/build_dataset/build_study_metadata_file.py {{input}} {env}/annotation.json -o {{output.study}}'.format(
                 src=config['cello_dev'],
                 env=config['env_dir']
@@ -393,14 +406,66 @@ rule metadata_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
 ##########################################################################################
 #   10x Zheng et al. sorted PBMC dataset
 ##########################################################################################
+rule build_counts:
+    output:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/counts.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'mkdir -p {}/datasets/zheng_10x_PBMC_2000_cells_per_type'.format(config['env_dir']),
+            'python build_expression_matrix_from_10x.py 2000 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule build_10x_leiden_0_8_aggregate_log_cpm:
+    input:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/counts.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/aggregate_by_cluster_leiden_0_8_log_cpm.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'python cluster_compute_mean.py {input} 0.8 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+    
+rule build_10x_leiden_1_6_aggregate_log_cpm:
+    input:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/counts.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/aggregate_by_cluster_leiden_1_6_log_cpm.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'python cluster_compute_mean.py {input} 1.6 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule build_10x_leiden_3_2_aggregate_log_cpm:
+    input:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/counts.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/aggregate_by_cluster_leiden_3_2_log_cpm.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'python cluster_compute_mean.py {input} 3.2 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
 
 rule build_10x_log_cpm:
+    input:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/counts.h5'.format(config['env_dir'])
     output:
         '{}/datasets/zheng_10x_PBMC_2000_cells_per_type/log_cpm.h5'.format(config['env_dir'])
     run:
         commands = [
             'mkdir -p {}/datasets/zheng_10x_PBMC_2000_cells_per_type'.format(config['env_dir']),
-            'python build_expression_matrix_from_10x.py 2000 -o {output}'
+            'python compute_log_cpm.py {input} 2000 -o {output}'
         ]
         for c in commands:
             shell('echo "{}"'.format(c))

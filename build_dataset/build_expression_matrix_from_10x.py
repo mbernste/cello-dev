@@ -20,7 +20,7 @@ from scipy.io import mmread
 
 resource_package = __name__
 
-import kallisto_quantified_data_manager_hdf5 as kqdm
+import kallisto_quantified_data_manager_hdf5_py3 as kqdm
 
 DATA_ROOT = '/tier2/deweylab/mnbernstein/10x_data' # TODO make this configurable
 
@@ -64,7 +64,7 @@ def main():
     tenx_genes_f = pr.resource_filename(resource_package, "10x_genes.json")
     with open(tenx_genes_f, 'r') as f:
         targ_genes = set(json.load(f))
-    print '%d total target genes' % len(targ_genes)
+    print('{} total target genes'.format(len(targ_genes)))
     datasets, barcodes, cell_ids, data_matrix = _load_random_subset(num_per_type, targ_genes)
 
     gene_ids = [
@@ -100,7 +100,7 @@ def _load_random_subset(num_per_type, targ_genes):
     all_datasets = []
     label_sets = [] # TODO
     data_matrix = None
-    for cell_type, root in DATA_SET_TO_LOCATION.iteritems():
+    for cell_type, root in DATA_SET_TO_LOCATION.items():
 
         # Load genes and map each gene to its index
         fname = join(root, 'genes.tsv')
@@ -144,8 +144,8 @@ def _load_random_subset(num_per_type, targ_genes):
         # Load the counts matrix and concatenate to current
         # data matrix
         fname = join(root, 'matrix.mtx')
-        print 'Loading counts from %s...' % fname
-        with open(fname, 'r') as f:
+        print('Loading counts from {}...'.format(fname))
+        with open(fname, 'rb') as f:
             mat = mmread(f).todense().T
         mat = mat[rand_indices,:]
         mat = mat[:,tenx_gene_indices]
@@ -156,18 +156,18 @@ def _load_random_subset(num_per_type, targ_genes):
         
     # Compute log-cpm
     data_matrix = np.array(data_matrix, dtype=np.float64)
-    print data_matrix.shape
-    print 'Computing log-CPM'
-    data_matrix = np.array([
-        x/sum(x)
-        for x in data_matrix
-    ])
-    data_matrix *= 1e6
-    data_matrix = np.log(data_matrix + 1)
-    print 'done.'    
-    print(data_matrix)
+    #print(data_matrix.shape)
+    #print('Computing log-CPM')
+    #data_matrix = np.array([
+    #    x/sum(x)
+    #    for x in data_matrix
+    #])
+    #data_matrix *= 1e6
+    #data_matrix = np.log(data_matrix + 1)
+    #print('done.')
+    #print(data_matrix)
 
-    print 'Loaded counts matrix of shape %s' % str(data_matrix.shape) 
+    print('Loaded counts matrix of shape {}'.format(data_matrix.shape)) 
     return all_datasets, all_barcodes, all_cell_ids, data_matrix
 
 
