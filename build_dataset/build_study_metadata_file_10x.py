@@ -12,7 +12,10 @@ def main():
     out_f = options.out_file
 
     with h5py.File(dataset_f, 'r') as f:
-        cell_ids = f['experiment'][:]
+        cell_ids = [
+            str(x)[2:-1]
+            for x in f['experiment'][:]
+        ]
 
     cell_id_to_study = {
         cell_id: 'zheng'
