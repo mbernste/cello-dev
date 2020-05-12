@@ -157,7 +157,7 @@ def main():
         label_graph=label_graph,
         label_to_name=label_to_name,
         og=og,
-        conservative=True
+        conservative=conservative_mode
     )
 
     metrics_df.to_csv(join(out_dir, 'binary_cell_type_metrics.tsv'), sep='\t')

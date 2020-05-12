@@ -23,50 +23,20 @@ from sklearn import metrics
 import numpy as np
 import pandas as pd
 
-sys.path.append("/ua/mnbernstein/projects/vis_lib")
-sys.path.append("/ua/mnbernstein/projects/tbcp/metadata/ontology/src")
-sys.path.append("/ua/mnbernstein/projects/tbcp/phenotyping/common")
-
-import project_data_on_ontology as pdoo
-from map_sra_to_ontology import ontology_graph
-from map_sra_to_ontology import load_ontology
-import vis_lib
-
 PBMC_TERM_ID = 'CL:2000001'
 MONONUCLEAR_CELL_TERM_ID = 'CL:0000842'
 
 def main():
     scores = [-1.0, -0.5, -0.5, 0.0, 0.5, 1.0]
     assigneds  = [False, False, True, True, False, True]
-    print _precision_recall_curve(assigneds, scores)
+    print(_precision_recall_curve(assigneds, scores))
 
 
 def convert_keys_to_label_strs(label_to_metric, og):
     return {
         pdoo.convert_node_to_name(k, og): v
-        for k,v in label_to_metric.iteritems()
+        for k,v in label_to_metric.items()
     }
-
-
-def data_metrics(
-        samples,
-        sample_to_labels,
-        sample_to_info
-    ):
-    """
-    Compute metrics on the dataset independently of any predictions
-    made by a classifier.
-    """
-    label_to_studies = defaultdict(lambda: set())
-    for sample in samples:
-        study = sample_to_info[sample]['study_accession']
-        for label in sample_to_labels[sample]:
-            label_to_studies[label].add(study)
-    label_to_num_studies = {
-        k:len(v) 
-        for k,v in label_to_studies.iteritems()
-    }
-    return label_to_num_studies
 
 
 def _compute_assignment_matrix(
@@ -74,7 +44,7 @@ def _compute_assignment_matrix(
         item_to_labels
     ):
     items = list(confidence_df.index)
-    labels = sorted(confidence_df.columns)
+    labels = confidence_df.columns
     mat = [
         [
             label in item_to_labels[item]
@@ -99,6 +69,7 @@ def compute_label_centric_metrics(
         og=None,
         conservative=False
     ):
+    assert tuple(confidence_df.index) == tuple(assignment_df.index)
     if conservative:
         assert label_graph is not None
         assert label_to_name is not None
@@ -111,6 +82,7 @@ def compute_label_centric_metrics(
             og,
             blacklist_labels=None
         )
+        #assert frozenset(label_to_assigneds.keys()) == frozenset(assignment_df.columns)
     else:
         label_to_assigneds = {
             label: assignment_df[label]
@@ -120,27 +92,28 @@ def compute_label_centric_metrics(
             label: confidence_df[label]
             for label in confidence_df.columns
         }
+    label_order = sorted(set(compute_labels) & set(label_to_scores.keys()))
 
     label_to_pr_curve = {}
     metrics_mat = []
     kept_labels = []
-    for label in compute_labels:
+    for label in label_order:
         assigneds = label_to_assigneds[label]
         confidences = label_to_scores[label]
         assert len(assigneds) > 0
         # This checks that at least one sample is annotated with the current label
         if len(frozenset(assigneds)) == 1 and list(set(assigneds))[0] == False:
-            print "WARNING! No samples are assigned label %s. Skipping computing metrics for this label." %  label
+            print("WARNING! No samples are assigned label %s. Skipping computing metrics for this label." %  label)
             continue
         if len(set(assigneds)) == 1 and list(set(assigneds))[0] == True:
-            print "WARNING! All samples are assigned label %s. Skipping computing metrics for this label." %  label
+            print("WARNING! All samples are assigned label %s. Skipping computing metrics for this label." %  label)
             continue
         kept_labels.append(label)
         # AUC
         try:
             auc = metrics.roc_auc_score(assigneds, confidences)
         except:
-            print "WARNING! Unable to compute AUC for label %s" % label
+            print("WARNING! Unable to compute AUC for label %s" % label)
             auc = -1.0
         # Precision-recall curve
         precisions, recalls, threshs = _precision_recall_curve(
@@ -170,6 +143,59 @@ def compute_label_centric_metrics(
     return metrics_df, label_to_pr_curve
 
 
+def compute_label_centric_metrics_binary(
+        confidence_df,
+        assignment_df,
+        include_labels,
+        label_graph=None,
+        label_to_name=None,
+        og=None,
+        conservative=False
+    ):
+    if conservative:
+        assert label_graph is not None
+        assert label_to_name is not None
+        assert og is not None
+        label_to_assigneds, label_to_scores = _compute_conservative_assignment_and_score_lists(
+            confidence_df,
+            assignment_df,
+            label_graph,
+            label_to_name,
+            og,
+            blacklist_labels=None
+        )
+    else:
+        label_to_assigneds = {
+            label: assignment_df[label]
+            for label in assignment_df.columns
+        }
+        label_to_scores = {
+            label: confidence_df[label]
+            for label in confidence_df.columns
+        }
+
+    label_order = sorted(set(include_labels) & set(label_to_scores.keys()))
+    recs = []
+    precs = []
+    f1s = []
+    for label in label_order:
+        preds = label_to_scores[label]
+        truths = label_to_assigneds[label] 
+        f1 = metrics.f1_score(truths, preds)
+        prec = metrics.precision_score(truths, preds)
+        rec = metrics.recall_score(truths, preds)
+        f1s.append(f1)
+        precs.append(prec)
+        recs.append(rec)
+    df = pd.DataFrame(
+        data={
+            'F1-Score': f1s,
+            'Recall': recs,
+            'Precision': precs
+        },
+        index=label_order
+    )
+    return df
 
 def _max_recall_at_prec_thresh(
         precisions,
@@ -186,40 +212,55 @@ def _max_recall_at_prec_thresh(
 
 
 
-def compute_joint_metrics():
+def compute_joint_metrics(
+        confidence_df,
+        assignment_df,
+        include_labels,
+        label_graph=None,
+        label_to_name=None,
+        og=None,
+        conservative=False
+    ):
+    if conservative:
+        assert label_graph is not None
+        assert label_to_name is not None
+        assert og is not None
+        label_to_assigneds, label_to_scores = _compute_conservative_assignment_and_score_lists(
+            confidence_df,
+            assignment_df,
+            label_graph,
+            label_to_name,
+            og,
+            blacklist_labels=None
+        )
+    else:
+        label_to_assigneds = {
+            label: assignment_df[label]
+            for label in assignment_df.columns
+        }
+        label_to_scores = {
+            label: confidence_df[label]
+            for label in confidence_df.columns
+        }
+
     # Compute the pan-dataset precision-recall curve
-    global_assigneds = []  
+    global_assigneds = []
     global_scores = []
-    global_labels = []
-    global_items = []
-    for item, label_to_conf in item_to_label_to_conf.iteritems():
-        for label, conf in label_to_conf.iteritems():
-            if restrict_to_labels and label not in restrict_to_labels:
-                continue
-            global_assigneds.append(
-                label in item_to_labels[item]
-            )
-            global_scores.append(conf)
-            global_labels.append(list(label)[0])
-            global_items.append(item)
+    for label, assigneds in label_to_assigneds.items():
+        if label not in include_labels:
+            continue
+        scores = label_to_scores[label]
+        global_assigneds += list(assigneds)
+        global_scores += list(scores)
 
-    scores_w_classes_w_labels_w_items = zip(global_scores, global_assigneds, global_labels, global_items)
-    scores_w_classes_w_labels_w_items = sorted(scores_w_classes_w_labels_w_items, key=lambda x: x[0])
-    print "Lowest global scores and truth value:"
-    with open('weird.json', 'w') as f:
-        print json.dump(scores_w_classes_w_labels_w_items, f, indent=True)
-        
-
-    global_precisions, global_recalls, global_threshs = _precision_recall_curve(global_assigneds, global_scores)
-    global_pr_curve = (global_precisions, global_recalls)
-    global_avg_precision = _average_precision(global_precisions, global_recalls)
-
+    precisions, recalls, threshs = _precision_recall_curve(
+        global_assigneds, 
+        global_scores
+    )
     return (
-        label_to_auc, 
-        label_to_avg_precision, 
-        label_to_pr_curve,
-        global_pr_curve,
-        global_avg_precision
+        precisions,
+        recalls,
+        threshs
     )
 
 
@@ -237,6 +278,7 @@ def _compute_conservative_assignment_and_score_lists(
     the sample's most-specific labels is an ancestor of the current
     label.
     """
+    print('Adjusting results to compute conservative metrics.')
     # Instantiate list of blacklisted labels
     if blacklist_labels is None:
         blacklist_labels = set()
@@ -252,16 +294,16 @@ def _compute_conservative_assignment_and_score_lists(
     }
 
     # Map each item to its most-specific labels
-    print "Mapping items to their most-specific labels..."
+    print("Mapping items to their most-specific labels...")
     all_labels = set(label_graph.get_all_nodes())
     item_to_ms_labels = {}
-    for item, labels in item_to_labels.iteritems():
+    for item, labels in item_to_labels.items():
         ms_item_labels = label_graph.most_specific_nodes(
             set(labels) & all_labels
         )
         ms_item_labels = ms_item_labels - blacklist_labels
         item_to_ms_labels[item] = ms_item_labels
-    print "done."
+    print("done.")
 
     # Create new nodes in the label graph corresponding to 
     # joint-labels -- that is, sets of labels for which there
@@ -271,12 +313,12 @@ def _compute_conservative_assignment_and_score_lists(
     mod_label_graph = label_graph.copy()
     mod_label_to_name = {
         label: name
-        for label, name in label_to_name.iteritems()
+        for label, name in label_to_name.items()
     }
 
     # Create all joint-nodes
     item_to_new_ms_labels = defaultdict(lambda: set())
-    for item, ms_labels in item_to_ms_labels.iteritems():
+    for item, ms_labels in item_to_ms_labels.items():
         # Create a joint label
         if len(ms_labels) > 1:
             joint_label = frozenset(ms_labels)
@@ -289,30 +331,30 @@ def _compute_conservative_assignment_and_score_lists(
             # it includes.
             for ms_label in ms_labels:
                 mod_label_graph.add_edge(ms_label, joint_label)
-            print "Created joint label '%s' (%s)" % (
+            print("Created joint label '%s' (%s)" % (
                 mod_label_to_name[joint_label],
                 joint_label
-            )
+            ))
 
     # Make a 'deep' copy of the mappings from experiments to most-specific 
     # labels. Then recompute the most-specific labels and predictions now 
     # that we have added these new join-labels
     mod_item_to_ms_labels = {
         item: set(ms_labels)
-        for item, ms_labels in item_to_ms_labels.iteritems()
+        for item, ms_labels in item_to_ms_labels.items()
     }
-    for item, new_ms_labels in item_to_new_ms_labels.iteritems():
+    for item, new_ms_labels in item_to_new_ms_labels.items():
         mod_item_to_ms_labels[item].update(new_ms_labels)
     mod_item_to_ms_labels = {
         item: mod_label_graph.most_specific_nodes(labels)
-        for item, labels in mod_item_to_ms_labels.iteritems()
+        for item, labels in mod_item_to_ms_labels.items()
     }
 
     # If the sample is most-specifically labeled as PBMC, then
     # for our purposes, we treat mononuclear cell as its most
     # specific label 
     item_to_ms_labels = mod_item_to_ms_labels
-    for item, ms_labels in item_to_ms_labels.iteritems():
+    for item, ms_labels in item_to_ms_labels.items():
         if PBMC_TERM_ID in ms_labels:
             ms_labels.add(
                 MONONUCLEAR_CELL_TERM_ID
@@ -321,7 +363,7 @@ def _compute_conservative_assignment_and_score_lists(
     # For each item, get all of the ancestors of all descendants
     # of it's most-specific labels
     item_to_anc_desc_ms_labels = {}
-    for item, ms_labels in item_to_ms_labels.iteritems():
+    for item, ms_labels in item_to_ms_labels.items():
         desc_ms_labels = set()
         for ms_label in ms_labels:
             desc_ms_labels.update(
@@ -346,7 +388,7 @@ def _compute_conservative_assignment_and_score_lists(
     label_to_cons_assigneds = {}
     label_to_cons_scores = {}
     for curr_label in set(all_labels) & set(assignment_df.columns):
-        print "Examining label %s" % og.id_to_term[curr_label].name
+        print("Examining label %s" % og.id_to_term[curr_label].name)
 
         # Assignment-values for this label
         filtered_assignments = []
@@ -385,11 +427,11 @@ def _compute_conservative_assignment_and_score_lists(
             filtered_scores.append(score)
         label_to_cons_assigneds[curr_label] = filtered_assignments
         label_to_cons_scores[curr_label] = filtered_scores
-        print "Label %s" % label_to_name[curr_label]
-        print "N samples in ranking: %d" % len(filtered_assignments)
-        print "N skipped: %d" % len(skipped_items)
-        print "Sample of skipped %s" % list(skipped_items)[0:20]
-        print 
+        print("Label %s" % label_to_name[curr_label])
+        print("N samples in ranking: %d" % len(filtered_assignments))
+        print("N skipped: %d" % len(skipped_items))
+        print("Sample of skipped %s" % list(skipped_items)[0:20])
+        print()
     label_to_assigneds = dict(label_to_cons_assigneds)
     label_to_scores = dict(label_to_cons_scores) 
 
@@ -406,8 +448,6 @@ def _compute_conservative_assignment_and_score_lists(
         data = filtering_da,
         columns = ['', '', 'Number of samples removed'] # TODO
     )
-    print 'Computation of conservative metrics:'
-    print filtering_df
     return label_to_assigneds, label_to_scores
 
 
@@ -476,7 +516,7 @@ def compute_per_sample_metrics(
     elif thresh_range == 'data_driven':
         max_conf = None
         min_conf = None
-        for sample, label_to_conf in sample_to_label_to_conf.iteritems():
+        for sample, label_to_conf in sample_to_label_to_conf.items():
             curr_max = max(label_to_conf.values())
             curr_min = min(label_to_conf.values())
             if not max_conf or curr_max > max_conf:
@@ -484,7 +524,7 @@ def compute_per_sample_metrics(
             if not min_conf or curr_min < min_conf:
                 min_conf = curr_min
         pred_threshes = np.array([min_conf, max_conf, 0.05])
-    print "Pred threshes: %s" % pred_threshes
+    print("Pred threshes: %s" % pred_threshes)
 
     # Determine which samples have no true labels. Also, precompute
     # the most-specific labels for each sample
@@ -500,7 +540,7 @@ def compute_per_sample_metrics(
         if restrict_to_labels:
             ms_true_pos_labels &= restrict_to_labels
         sample_to_ms_true_pos_labels[sample] = ms_true_pos_labels
-    print "%d samples have no true labels." % len(skipped_samples)
+    print("%d samples have no true labels." % len(skipped_samples))
 
     for pred_thresh in pred_threshes:
         all_studies = set()
@@ -514,14 +554,14 @@ def compute_per_sample_metrics(
         avg_sw_sample_ms_prec_sum = 0.0
         avg_sw_sample_ms_recall_sum = 0.0
 
-        for sample, label_to_conf in sample_to_label_to_conf.iteritems():
+        for sample, label_to_conf in sample_to_label_to_conf.items():
             if sample in skipped_samples:
                 continue
             n_samples += 1.0
 
             pred_pos_labels = set([
                 label
-                for label, conf in label_to_conf.iteritems()
+                for label, conf in label_to_conf.items()
                 if conf >= pred_thresh
             ])
             ms_pred_pos_labels = label_graph.most_specific_nodes(pred_pos_labels)
@@ -589,13 +629,13 @@ def compute_per_sample_metrics(
         avg_sw_sample_ms_prec = avg_sw_sample_ms_prec_sum / n_studies
         avg_sw_sample_ms_recall = avg_sw_sample_ms_recall_sum / n_studies
        
-        print "Threshold is %f. Prec: %f. Recall: %f. Ms-prec: %f. Ms-recall: %f" % (
+        print("Threshold is %f. Prec: %f. Recall: %f. Ms-prec: %f. Ms-recall: %f" % (
             pred_thresh,
             avg_sample_prec,
             avg_sample_recall,
             avg_sample_ms_prec,
             avg_sample_ms_recall
-        )
+        ))
         precisions.append(avg_sample_prec)
         recalls.append(avg_sample_recall)
         sw_precisions.append(avg_sw_sample_prec)
@@ -658,7 +698,7 @@ def compute_conservative_per_sample_metrics(
     elif thresh_range == 'data_driven':
         max_conf = None
         min_conf = None
-        for sample, label_to_conf in sample_to_label_to_conf.iteritems():
+        for sample, label_to_conf in sample_to_label_to_conf.items():
             curr_max = max(label_to_conf.values())
             curr_min = min(label_to_conf.values())
             if not max_conf or curr_max > max_conf:
@@ -666,7 +706,7 @@ def compute_conservative_per_sample_metrics(
             if not min_conf or curr_min < min_conf:
                 min_conf = curr_min
         pred_threshes = np.array([min_conf, max_conf, 0.05])
-    print "Pred threshes: %s" % pred_threshes
+    print("Pred threshes: %s" % pred_threshes)
 
     # Determine which samples have no true labels. Also, precompute
     # the most-specific labels for each sample
@@ -700,19 +740,7 @@ def compute_conservative_per_sample_metrics(
         ignore_labels = anc_desc_ms_labels - true_pos_labels
         sample_to_ignore_labels[sample] = ignore_labels    
 
-    print "%d samples have no true labels." % len(skipped_samples)
-
-    # REMOVEEEEEEEEEEEE
-    #samples_w_ignore = [
-    #    sample
-    #    for sample, ignore in sample_to_ignore_labels.iteritems() 
-    #    if len(ignore) > 2
-    #]
-    #print "Samples and ignore labels"
-    #for sample in samples_w_ignore[:10]:
-    #    print "%s\t%s" % (sample, [label_to_name[x] for x in sample_to_ignore_labels[sample]])
-    #print "%d samples have labels to ignore" % len(samples_w_ignore)
-    # REMOVEEEEE
+    print("%d samples have no true labels." % len(skipped_samples))
 
     for pred_i, pred_thresh in enumerate(pred_threshes):
         all_studies = set()
@@ -726,14 +754,14 @@ def compute_conservative_per_sample_metrics(
         avg_sw_sample_ms_prec_sum = 0.0
         avg_sw_sample_ms_recall_sum = 0.0
 
-        for sample, label_to_conf in sample_to_label_to_conf.iteritems():
+        for sample, label_to_conf in sample_to_label_to_conf.items():
             if sample in skipped_samples:
                 continue
             n_samples += 1.0
 
             pred_pos_labels = set([
                 label
-                for label, conf in label_to_conf.iteritems()
+                for label, conf in label_to_conf.items()
                 if conf >= pred_thresh
             ])
             ignore_labels = sample_to_ignore_labels[sample]
@@ -785,16 +813,16 @@ def compute_conservative_per_sample_metrics(
 
 
             if pred_thresh == 0.999400:
-                print "Sample: %s" % sample
-                print "True labels: %s" % [label_to_name[x] for x in true_pos_labels]
-                print "Predicted labels: %s" % [label_to_name[x] for x in pred_pos_labels]
-                print "Most-specific true labels: %s" % [label_to_name[x] for x in ms_true_pos_labels]
-                print "Most-specific predicted labels: %s" % [label_to_name[x] for x in ms_pred_pos_labels] 
-                print "Precision: %f" % sample_prec
-                print "Recall: %f" % sample_recall
-                print "Specific terms precision: %f" % sample_ms_prec
-                print "Specific terms recall: %f" % sample_ms_recall
-                print
+                print("Sample: %s" % sample)
+                print("True labels: %s" % [label_to_name[x] for x in true_pos_labels])
+                print("Predicted labels: %s" % [label_to_name[x] for x in pred_pos_labels])
+                print("Most-specific true labels: %s" % [label_to_name[x] for x in ms_true_pos_labels])
+                print("Most-specific predicted labels: %s" % [label_to_name[x] for x in ms_pred_pos_labels])
+                print("Precision: %f" % sample_prec)
+                print("Recall: %f" % sample_recall)
+                print("Specific terms precision: %f" % sample_ms_prec)
+                print("Specific terms recall: %f" % sample_ms_recall)
+                print()
 
         n_studies = len(all_studies)
         avg_sample_prec = avg_sample_prec_sum / n_samples
@@ -806,13 +834,13 @@ def compute_conservative_per_sample_metrics(
         avg_sw_sample_ms_prec = avg_sw_sample_ms_prec_sum / n_studies
         avg_sw_sample_ms_recall = avg_sw_sample_ms_recall_sum / n_studies
 
-        print "Threshold is %f. Prec: %f. Recall: %f. Ms-prec: %f. Ms-recall: %f" % (
+        print("Threshold is %f. Prec: %f. Recall: %f. Ms-prec: %f. Ms-recall: %f" % (
             pred_thresh,
             avg_sample_prec,
             avg_sample_recall,
             avg_sample_ms_prec,
             avg_sample_ms_recall
-        )
+        ))
         precisions.append(avg_sample_prec)
         recalls.append(avg_sample_recall)
         sw_precisions.append(avg_sw_sample_prec)
@@ -890,7 +918,7 @@ def _recall(preds_w_trues):
     return true_pos / all_pos
     
 
-def _precision_recall_curve(classes, scores):
+def _precision_recall_curve_OLD(classes, scores):
     scores_w_classes = zip(scores, classes)
     scores_w_classes = sorted(scores_w_classes, key=lambda x: x[0])
     curr_score = None
@@ -917,6 +945,31 @@ def _precision_recall_curve(classes, scores):
     return precisions, recalls, threshs
 
 
+def _precision_recall_curve(classes, scores):
+    scores_w_classes = zip(scores, classes)
+    scores_w_classes = sorted(scores_w_classes, key=lambda x: x[0], reverse=True)
+    curr_score = None
+    precisions = []
+    recalls = []
+    threshs = []
+    total_pos = float(len([x for x in scores_w_classes if x[1]]))
+    pos_seen = 0.0
+    tot_seen = 0.0
+    last_score = None
+    for curr_score, curr_class in scores_w_classes:
+        tot_seen += 1.0
+        if curr_class: # Positive instance
+            pos_seen += 1.0
+        if last_score is None or curr_score != last_score:
+            prec = pos_seen / tot_seen
+            recall = pos_seen / total_pos
+            precisions.append(prec)
+            recalls.append(recall)
+            threshs.append(curr_score)
+        last_score = curr_score
+    return precisions, recalls, threshs
+
+
 def _average_precision(precisions, recalls):
     summ = 0.0
     if len(recalls) > 0 and recalls[0] != 0.0:
@@ -932,47 +985,6 @@ def _average_precision(precisions, recalls):
 
    
     
-def compute_included_labels(
-        the_exps,
-        exp_to_labels,
-        exp_to_info,
-        og
-    ):
-    label_to_num_studies = data_metrics(
-        the_exps,
-        exp_to_labels,
-        exp_to_info
-    )
-    include_labels = set([
-        label
-        for label, n_studies in label_to_num_studies.iteritems()
-        if n_studies > 1
-    ])
-
-    print "Label to number of studies:"
-    print label_to_num_studies
-
-    # Compute the trivial labels
-    trivial_labels = set(
-        exp_to_labels[
-            list(exp_to_labels.keys())[0]
-        ]
-    )
-    for labels in exp_to_labels.values():
-        trivial_labels = trivial_labels & set(labels)
-    print "Computed the following trivial labels: %s" % trivial_labels
-
-    include_labels -= trivial_labels
-    return include_labels
-
-
-
-
-
-
-
-
-
 
 
 
@@ -990,7 +1002,7 @@ def compute_per_sample_performance(
     sample_to_false_positives = defaultdict(lambda: set())
     sample_to_false_negatives = defaultdict(lambda: set())
     sample_to_hamming_loss = {}
-    for sample, predictions in sample_to_predictions.iteritems():
+    for sample, predictions in sample_to_predictions.items():
         predictions = set(predictions)
         labels = set(sample_to_labels[sample])
         false_positives = predictions - labels
@@ -1014,12 +1026,12 @@ def per_label_recall(
         sample_to_weight = defaultdict(lambda: 1)
 
     label_to_predicted_samples = defaultdict(lambda: set())
-    for sample, predictions in sample_to_predictions.iteritems():
+    for sample, predictions in sample_to_predictions.items():
         for label in predictions:
             label_to_predicted_samples[label].add(sample)
 
     label_to_relavent_samples = defaultdict(lambda: set())
-    for sample, labels in sample_to_labels.iteritems():
+    for sample, labels in sample_to_labels.items():
         for label in labels:
             label_to_relavent_samples[label].add(sample)
 
@@ -1052,7 +1064,7 @@ def per_label_precision(
         label_to_sample_to_weight = defaultdict(lambda: defaultdict(lambda: 1))
 
     label_to_predicted_samples = defaultdict(lambda: set())
-    for sample, predictions in sample_to_predictions.iteritems():
+    for sample, predictions in sample_to_predictions.items():
         for label in predictions:
             label_to_predicted_samples[label].add(sample)
 

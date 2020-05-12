@@ -109,7 +109,8 @@ def draw_boxplot(
             y=value_name, 
             ax=ax, 
             fliersize=0.0, 
-            palette='Blues_r'
+            palette='Blues_r',
+            order=method_names
         )
     else: 
         sns.boxplot(
@@ -117,7 +118,8 @@ def draw_boxplot(
             x='Method', 
             y=value_name, 
             ax=ax, 
-            fliersize=0.0
+            fliersize=0.0,
+            order=method_names
         )
     sns.stripplot(
         data=df, 
@@ -126,7 +128,8 @@ def draw_boxplot(
         ax=ax, 
         color=".3", 
         alpha=0.75, 
-        size=2.
+        size=2.,
+        order=method_names
     )
     for method_name in method_names:
         if len(method_name) > 5:
