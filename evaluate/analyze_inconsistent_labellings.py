@@ -6,8 +6,6 @@ import matplotlib as mpl
 mpl.use('Agg')
 import os
 from os.path import join
-import sys
-import random
 import json
 from optparse import OptionParser
 from collections import defaultdict
@@ -16,8 +14,7 @@ import pandas as pd
 import subprocess
 
 from common import the_ontology
-import vis_lib 
-from vis_lib import vis_lib as vl
+from vis_lib_py3 import vis_lib as vl
 import graph_lib
 from graph_lib.graph import DirectedAcyclicGraph
 
@@ -41,6 +38,7 @@ def main():
    
     results_f = args[0]
     label_graph_f = args[1]
+    prefix = args[2]
     out_dir = options.out_dir
 
     # Load the results
@@ -108,16 +106,16 @@ def main():
     total_fraction_inconsistent = total_n_incons / float(total_edges)
     total_fraction_very_inconsistent = total_n_very_incons / float(total_edges)
 
-    print "Inconsistent edges:"
-    for incons, count in sorted([(k,v) for k,v in incons_to_count.iteritems()], key=lambda x: x[1]):
+    print("Inconsistent edges:")
+    for incons, count in sorted([(k,v) for k,v in incons_to_count.items()], key=lambda x: x[1]):
         parent = incons[0]
         child = incons[1]
-        print "%s -> %s : %d" % (label_to_name[parent], label_to_name[child], count)
-    print "Very inconsistent edges:"
-    for incons, count in sorted([(k,v) for k,v in very_incons_to_count.iteritems()], key=lambda x: x[1]):
+        print("%s -> %s : %d" % (label_to_name[parent], label_to_name[child], count))
+    print("Very inconsistent edges:")
+    for incons, count in sorted([(k,v) for k,v in very_incons_to_count.items()], key=lambda x: x[1]):
         parent = incons[0]
         child = incons[1]
-        print "%s -> %s : %d" % (label_to_name[parent], label_to_name[child], count)
+        print("%s -> %s : %d" % (label_to_name[parent], label_to_name[child], count))
 
     summary_df = pd.DataFrame(
         data=[
@@ -145,7 +143,7 @@ def main():
         ]
     )
     summary_df.to_csv(
-        join(out_dir, 'inconsistent_edges_stats.tsv'),
+        join(out_dir, '{}.inconsistent_edges_stats.tsv'.format(prefix)),
         sep='\t'
     )
 
@@ -170,7 +168,7 @@ def main():
     axarr[0][0].set_ylabel('Cumulative probability')
     axarr[0][0].set_xlim((0.0, 1.0)) 
     axarr[0][0].set_ylim((0.0, 1.0))
-    out_f = join(out_dir, "CDF_inconsistences") 
+    out_f = join(out_dir, "{}.CDF_inconsistences".format(prefix)) 
     fig.savefig( 
         "%s.eps" % out_f, 
         format='eps', 
@@ -188,7 +186,7 @@ def main():
     
 
 def _run_cmd(cmd):
-    print "Running: %s" % cmd
+    print("Running: %s" % cmd)
     subprocess.call(cmd, shell=True)
 
 
