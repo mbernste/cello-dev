@@ -35,7 +35,7 @@ class TruePathRule():
         # classifiers or train them from scratch
         self.features = features
         if model_dependency is not None:
-            with open(model_dependency, 'r') as f:
+            with open(model_dependency, 'rb') as f:
                 self.ensemble = dill.load(f)
             # Make sure that this pre-trained model was trained on the 
             # same set of items and labels

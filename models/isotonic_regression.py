@@ -37,7 +37,7 @@ class IsotonicRegression():
         # classifiers or train them from scratch
         self.features = features
         if model_dependency is not None:
-            with open(model_dependency, 'r') as f:
+            with open(model_dependency, 'rb') as f:
                 self.ensemble = dill.load(f)
             # Make sure that this pre-trained model was trained on the 
             # same set of items and labels
@@ -66,7 +66,6 @@ class IsotonicRegression():
             self.label_graph = label_graph
 
     def predict(self, X, test_items):
-
         confidence_df, scores_df = self.ensemble.predict(X, test_items)
         labels_order = confidence_df.columns        
 
@@ -89,16 +88,10 @@ class IsotonicRegression():
         pred_da = []
         for q_i in range(len(X)):
             Q = np.eye(len(labels_order), len(labels_order))
-            #predictions = np.array([ # Probabilities
-            #    label_to_scores[label][q_i]
-            #    for label in labels_order
-            #])
-            #predictions = np.array(predictions, dtype=np.double)
             predictions = np.array(
                 confidence_df[labels_order].iloc[q_i],
                 dtype=np.double
             )
-            #predictions = np.array(predictions, dtype=np.double)
             print("Running solver on item {}/{}...".format(q_i+1, len(X)))
             xf, f, xu, iters, lagr, iact = solve_qp(
                 Q, 
@@ -106,9 +99,6 @@ class IsotonicRegression():
                 constraints_matrix, 
                 b
             )
-
-            # xf is the final list of probabilities for item q_i
-            # ordered by 
             pred_da.append(xf)
         pred_df = pd.DataFrame(
             data=pred_da,

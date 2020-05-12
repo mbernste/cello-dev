@@ -1,6 +1,7 @@
 from optparse import OptionParser
 import sklearn
 from sklearn import decomposition
+import dill
 
 def main():
     usage = "" # TODO 

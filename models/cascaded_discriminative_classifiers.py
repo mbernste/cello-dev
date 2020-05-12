@@ -271,7 +271,7 @@ def _compute_training_sets_remove_ambiguous(
         negative_items = set()
         parent_labels = set(label_graph.target_to_sources[curr_label])
         for item, labels in item_to_labels.items():
-             if frozenset(labels & parent_labels) == frozenset(parent_labels):
+             if frozenset(set(labels) & parent_labels) == frozenset(parent_labels):
                 negative_items.add(item)
         negative_items -= set(label_to_pos_items[curr_label])
 

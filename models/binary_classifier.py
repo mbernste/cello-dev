@@ -22,15 +22,6 @@ class L2LogisticRegression():
                 class_weight=class_weight,
                 intercept_scaling=intercept_scaling
             )
-        elif solver == 'saga':
-            self.model = LogisticRegression(
-                C=penalty_weight,
-                penalty='l2',
-                solver='saga',
-                tol=1e-4,
-                max_iter=200,
-                class_weight=class_weight
-            )
 
     def fit(self, X, y):
         self.model.fit(X, y)
@@ -43,6 +34,9 @@ class L2LogisticRegression():
 
     def predict_log_proba(self, X):
         return self.model.predict_log_proba(X)
+
+    def decision_function(self, X):
+        return self.model.decision_function(X)
 
 def build_binary_classifier(algorithm, params):
     if algorithm == "logistic_regression":
