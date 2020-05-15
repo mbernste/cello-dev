@@ -1,5 +1,5 @@
 from optparse import OptionParser
-
+import dill
 import numpy as np
 import json
 import random
@@ -9,6 +9,7 @@ from .ensemble_binary_classifiers import EnsembleOfBinaryClassifiers
 from .cascaded_discriminative_classifiers import CascadedDiscriminativeClassifiers 
 from .isotonic_regression import IsotonicRegression
 from .true_path_rule import TruePathRule
+from .bayes_net_correction import BNC_DiscreteDynamicBins
 from .scale import Scale
 from .pca import PCA
 
@@ -17,7 +18,8 @@ CLASSIFIERS = {
     'ind_one_vs_rest': EnsembleOfBinaryClassifiers,
     'cdc': CascadedDiscriminativeClassifiers,
     'isotonic_regression': IsotonicRegression,
-    'true_path_rule': TruePathRule
+    'true_path_rule': TruePathRule,
+    'bnc': BNC_DiscreteDynamicBins
 }
 
 PREPROCESSORS = {
@@ -34,7 +36,10 @@ class Model:
             preprocessors: a list of preprocessor algorithms
                 for transforming the data before fitting
         """
-        self.preprocessors = preprocessors
+        if preprocessors is None:
+            self.preprocessors = []
+        else:
+            self.preprocessors = preprocessors
         self.classifier = classifier
 
     def fit(
@@ -61,12 +66,11 @@ class Model:
                 labels
             features (list): a M-length list of feature names 
         """
-        if self.preprocessors:
-            for prep in self.preprocessors:
-                prep.fit(train_X)
-                train_X = prep.transform(
-                    train_X
-                )
+        for prep in self.preprocessors:
+            prep.fit(train_X)
+            train_X = prep.transform(
+                train_X
+            )
         self.classifier.fit(
             train_X,
             train_items,
@@ -78,11 +82,21 @@ class Model:
             model_dependency=model_dependency
         )
 
-    def predict(self, X, test_items):
-        if self.preprocessors:
+    def _preprocess(self, X):
+        if self.preprocessors is not None:
             for prep in self.preprocessors:
                 X = prep.transform(X)
+        return X
+
+    def predict(self, X, test_items):
+        X = self._preprocess(X)
         return self.classifier.predict(X, test_items)
+
+    def decision_function(self, X, test_items):
+        if self.preprocessors is not None:
+            for prep in self.preprocessors:
+                X = prep.transform(X)
+        return self.classifier.decision_function(X, test_items)
 
 
 def train_model(
@@ -101,7 +115,7 @@ def train_model(
         model_dependency=None
     ):
     """
-    Args:
+    Parameters:
         algorithm: the string representing the machine learning algorithm
         params: a dictioanry storing the parameters for the algorithm
         train_X: the training feature vectors
@@ -124,6 +138,7 @@ def train_model(
             PREPROCESSORS[prep_name](prep_params)
             for prep_name, prep_params in zip(preprocessor_names, preprocessor_params)
         ]
+    print(preps)
     model = Model(
         classifier,
         preprocessors=preps
