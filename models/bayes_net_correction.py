@@ -19,6 +19,7 @@ import pandas as pd
 
 from graph_lib.graph import DirectedAcyclicGraph, topological_sort
 from . import binary_classifier as bc
+from .ensemble_binary_classifiers import EnsembleOfBinaryClassifiers 
 
 EPSILON = 0.0000001
 
@@ -405,307 +406,6 @@ def _compute_evidence_cond_probs(
     )
 
 
-class PerLabelSVM_BNC_DiscBins_NaiveBayes():
-
-    def __init__(
-        self,
-        binary_classifier_type,
-        binary_classifier_params,
-        assert_ambig_neg,
-        pseudocount,
-        n_bins_default,
-        artifact_dir,
-        delete_artifacts=True,
-        downweight_by_group=False,
-        downweight_by_class=False,
-        prior_pos_estimation='constant'
-    ):
-        """
-        Args:
-        """
-        super(PerLabelSVM_BNC_DiscBins_NaiveBayes, self).__init__(
-            binary_classifier_type,
-            binary_classifier_params,
-            downweight_by_group=downweight_by_group,
-            downweight_by_class=downweight_by_class,
-            assert_ambig_neg=assert_ambig_neg
-        )
-        self.trivial_labels = None
-        self.bayes_net = None
-        self.artifact_dir = artifact_dir
-        self.delete_artifacts = delete_artifacts
-        self.pseudocount = pseudocount
-        self.n_bins_default = n_bins_default
-        self.prior_pos_estimation = prior_pos_estimation
-        _run_cmd("mkdir %s" % self.artifact_dir)
-
-    def _fit_score_distrs(
-            self,
-            train_vecs,
-            item_to_index,
-            item_to_group=None
-        ):
-        score_rv_to_pos_distr = {}
-        score_rv_to_neg_distr = {}
-        score_rv_to_bin_bounds = {}
-        for label in self.label_to_pos_scores:
-            pos_items = self.ensemble.classifier.label_to_pos_items[label]
-            neg_items = self.ensemble.classifier.label_to_neg_items[label]
-            
-            r = _compute_folds(
-                pos_items,
-                neg_items,
-                item_to_group
-            )
-            fold_1_pos = r[0]
-            fold_1_neg = r[1]
-            fold_2_pos = r[2]
-            fold_2_neg = r[3]
-            item_to_group_fold_1 = r[4]
-            item_to_group_fold_2 = r[5]
-
-            r = _compute_cross_fold_val_scores(
-                fold_1_pos,
-                fold_1_neg,
-                fold_2_pos,
-                fold_2_neg,
-                item_to_group_fold_1,
-                item_to_group_fold_2,
-                train_vecs,
-                item_to_index,
-                self.binary_classifier_type,
-                self.binary_classifier_params
-            )
-            pos_scores_fold_1 = r[0]
-            neg_scores_fold_1 = r[1]
-            pos_scores_fold_2 = r[2]
-            neg_scores_fold_2 = r[3]
-
-            
-            pos_scores = list(pos_scores_fold_1) + list(pos_scores_fold_2)
-            neg_scores = list(neg_scores_fold_1) + list(neg_scores_fold_2)
-             
-            if len(pos_scores) == 0 or len(neg_scores) == 0:
-                # If we were unable to estimate scores using
-                # 2-fold cross-valdiation, then fall back on
-                # using the training scores
-                print('Falling back on training scores...')
-                pos_scores = self.label_to_pos_scores[label]
-                neg_scores = self.label_to_neg_scores[label]
-                bin_bounds = _bin_estimation(
-                    pos_items,
-                    neg_items,
-                    pos_scores,
-                    neg_scores,
-                    item_to_group,
-                    self.n_bins_default
-                )
-            else:
-                bin_bounds = _bin_estimation(
-                    fold_1_pos + fold_2_pos,
-                    fold_1_neg + fold_2_neg,
-                    pos_scores,
-                    neg_scores,
-                    item_to_group,
-                    self.n_bins_default
-                )
-            pos_probs = _compute_bin_probs(
-                bin_bounds,
-                pos_scores,
-                self.pseudocount
-            )
-            neg_probs = _compute_bin_probs(
-                bin_bounds,
-                neg_scores,
-                self.pseudocount
-            )
-            outcome_names = [
-                'bin_{}'.format(bin_i)
-                for  bin_i in range(len(pos_probs))
-            ]
-            score_rv = self.latent_rv_to_score_rv[label]
-            score_rv_to_pos_distr[score_rv] = pos_probs
-            score_rv_to_neg_distr[score_rv] = neg_probs
-            score_rv_to_bin_bounds[score_rv] = bin_bounds
-        return (
-            score_rv_to_pos_distr,     
-            score_rv_to_neg_distr,
-            score_rv_to_bin_bounds
-        )
-
-
-    def fit(
-        self, 
-        training_feat_vecs, 
-        training_items, 
-        item_to_labels, 
-        label_graph,
-        item_to_group=None,
-        verbose=False,
-        feat_names=None
-    ):
-        super(PerLabelSVM_BNC_DiscBins_NaiveBayes, self).fit(
-            training_feat_vecs,
-            training_items,
-            item_to_labels,
-            label_graph,
-            item_to_group=item_to_group,
-            verbose=verbose,
-            feat_names=feat_names
-        )
-
-        # Estimate the prior probabilities
-        if self.prior_pos_estimation == 'constant':
-            self.label_to_p_pos = defaultdict(lambda: constant_prior_pos)
-        elif self.prior_pos_estimation == 'from_counts':
-            self.label_to_p_pos = _est_priors_from_counts(
-                self.item_to_labels
-            )
-        elif self.prior_pos_estimation == 'from_counts_conditional':
-            self.label_to_p_pos = _est_priors_from_cond_counts(
-                self.label_graph,
-                self.item_to_labels
-            )
-
-        # Compute the directed graph formed by the labels
-        # spanning the samples
-        all_labels = set()
-        for item in training_items:
-            all_labels.update(self.item_to_labels[item])
-        source_to_targets = self.label_graph.source_to_targets
-
-        # Each label's parents are it's children in the label graph.
-        # We also create a random variable for each label that 
-        # represents the classifer score for that label. This score 
-        # is dependent on the positive/negative assignment for that 
-        # label
-        self.latent_rv_to_parents = {
-            source: set(targets)
-            for source, targets in source_to_targets.items()
-        }
-        self.latent_rv_to_parents.update({
-            label: set()
-            for label in all_labels
-            if label not in self.latent_rv_to_parents
-        })
-
-        self.latent_rv_to_children = defaultdict(lambda: set())
-        for child, parents in self.latent_rv_to_parents.items():
-            for parent in parents:
-                self.latent_rv_to_children[parent].add(child)
-        self.latent_rv_to_children.update({
-            label: set()
-            for label in all_labels
-            if label not in self.latent_rv_to_children
-        })
-        self.latent_rv_to_children = dict(self.latent_rv_to_children) 
-
-        # Generate identifiers for each SVM score random variable
-        self._score_rv_to_name = {
-            label: 'Evidence_' + label
-            for label in self.latent_rv_to_parents
-        }
-
-        # Map each latent random variable to its corresponding
-        # SVM score random variable
-        self.latent_rv_to_score_rv = {
-            var: self._score_rv_to_name[var]
-            for var in self.latent_rv_to_parents
-        }
-
-        svm_score_var_to_parents = {
-            self.latent_rv_to_score_rv[var]: [var]
-            for var in self.latent_rv_to_parents
-        }
-        svm_score_var_to_parents = {
-            svm_score_var: list(sorted(parents))
-            for svm_score_var, parents in svm_score_var_to_parents.items()
-        }
-
-        svm_score_vars = set(svm_score_var_to_parents.keys())
-        latent_label_vars = set(self.latent_rv_to_parents.keys())
-
-        # Fit the conditional distributions of the SVM score random 
-        # variables conditioned on each latent random variable
-        item_to_index = {
-            item: i
-            for i,item in enumerate(training_items)
-        }
-        r = self._fit_score_distrs(
-            training_feat_vecs,
-            item_to_index,
-            item_to_group
-        )
-        self.score_rv_to_pos_distr = r[0]
-        self.score_rv_to_neg_distr = r[1]
-        self.score_rv_to_bin_bounds = r[2] 
-    
-    def _compute_marginals(
-        self,
-        score_rv_to_scores,
-        score_rv_to_pos_probs,
-        score_rv_to_neg_probs
-    ):
-        label_to_marginals = []
-        label_to_marginal_sequence_list = []
-        for q_i in range(len(list(score_rv_to_scores.values())[0])):
-            print('Running inference on sample {}/{}'.format(q_i+1, len(list(score_rv_to_scores.values())[0])))
-            score_rv_to_score = {
-                score_rv: scores[q_i]
-                for score_rv, scores in score_rv_to_scores.items()
-            }
-            score_rv_to_pos_prob = {
-                score_rv: probs[q_i]
-                for score_rv, probs in score_rv_to_pos_probs.items()
-            }
-            score_rv_to_neg_prob = {
-                score_rv: probs[q_i]
-                for score_rv, probs in score_rv_to_neg_probs.items()
-            }
-            
-            latent_var_to_count = defaultdict(lambda: 0)
-            bayes_net_dag = DirectedAcyclicGraph(self.latent_rv_to_children)
-            all_latent_rvs = bayes_net_dag.get_all_nodes()
-            latent_rv_to_marginal = {}
-            for latent_rv in all_latent_rvs:
-                score_rv = self.latent_rv_to_score_rv[latent_rv]
-                p_pos = self.label_to_p_pos[latent_rv]
-                if not score_rv in score_rv_to_score:
-                    latent_rv_to_marginal[latent_rv] = 1.0
-                else:
-                    marginal = (score_rv_to_pos_prob[score_rv]*p_pos) \
-                        / ( \
-                            (score_rv_to_pos_prob[score_rv]*p_pos) \
-                            + (score_rv_to_neg_prob[score_rv]*(1-p_pos)) \
-                        )
-                    latent_rv_to_marginal[latent_rv] = marginal
-            label_to_marginals.append(latent_rv_to_marginal)
-        return label_to_marginals
-
-
-    def predict(self, X, verbose=False):
-        label_to_scores = _compute_scores(
-            X, self.label_to_classifier
-        )
-        r = _compute_evidence_cond_probs(
-            label_to_scores,
-            self._score_rv_to_name,
-            self.score_rv_to_bin_bounds,
-            self.score_rv_to_pos_distr,
-            self.score_rv_to_neg_distr
-        )
-        svm_var_to_pos_probs = r[0]
-        svm_var_to_neg_probs = r[1]
-        svm_var_to_scores = r[2]
-        label_to_score_list = r[3]
-        label_to_marginals = self._compute_marginals(
-            svm_var_to_scores,
-            svm_var_to_pos_probs,
-            svm_var_to_neg_probs
-        )
-        return label_to_marginals, label_to_score_list
-
-
 class BNC_DiscreteBins():
     def __init__(
         self,
@@ -731,34 +431,20 @@ class BNC_DiscreteBins():
         model_dependency=None
     ):
         self.features = features
-        if model_dependency is not None:
-            with open(model_dependency, 'rb') as f:
-                self.ensemble = dill.load(f)
-            # Make sure that this pre-trained model was trained on the 
-            # same set of items and labels
-            assert _validate_pretrained_model(
-                self.ensemble,
-                train_items,
-                label_graph,
-                features
-            )
-            self.features = self.ensemble.classifier.features
-            self.train_items = self.ensemble.classifier.train_items
-            self.label_graph = self.ensemble.classifier.label_graph
-        else:
-            self.ensemble = EnsembleOfBinaryClassifiers(self.params)
-            self.ensemble.fit(
-                X,
-                train_items,
-                item_to_labels,
-                label_graph,
-                item_to_group=item_to_group,
-                verbose=verbose,
-                features=features
-            )
-            self.features = features
-            self.train_items = train_items
-            self.label_graph = label_graph
+        assert model_dependency is not None
+        with open(model_dependency, 'rb') as f:
+            self.ensemble = dill.load(f)
+        # Make sure that this pre-trained model was trained on the 
+        # same set of items and labels
+        assert _validate_pretrained_model(
+            self.ensemble,
+            train_items,
+            label_graph,
+            features
+        )
+        self.features = self.ensemble.classifier.features
+        self.train_items = self.ensemble.classifier.train_items
+        self.label_graph = self.ensemble.classifier.label_graph
         
         # Get the trivial labels that have no negative examples
         #self.trivial_labels = self.ensemble.classifier.trivial_labels
@@ -975,8 +661,9 @@ class BNC_DiscreteBins():
         return from_pos_to_neg, from_neg_to_pos
 
     def predict(self, X, test_items, verbose=False):
-        for prep in self.ensemble.preprocessors:
-            X = prep.transform(X)
+        if self.ensemble.preprocessors is not None:
+            for prep in self.ensemble.preprocessors:
+                X = prep.transform(X)
         label_to_scores = _compute_scores(
             X, 
             self.ensemble
@@ -1923,6 +1610,57 @@ class BNC_DiscreteDynamicBins(BNC_DiscreteBins):
             model_dependency=model_dependency
         )
 
+class BNC_DiscreteDynamicBins_NaiveBayes(BNC_DiscreteDynamicBins):
+    def __init__(
+            self,
+            params
+        ):
+        super(BNC_DiscreteDynamicBins_NaiveBayes, self).__init__(params)
+
+    def _compute_marginals(
+        self,
+        score_rv_to_scores,
+        score_rv_to_pos_probs,
+        score_rv_to_neg_probs,
+        verbose=False # Unused
+    ):
+        label_to_marginals = []
+        label_to_marginal_sequence_list = []
+        for q_i in range(len(list(score_rv_to_scores.values())[0])):
+            print('Running inference on sample {}/{}'.format(
+                q_i+1,
+                len(list(score_rv_to_scores.values())[0]))
+            )
+            score_rv_to_score = {
+                score_rv: scores[q_i]
+                for score_rv, scores in score_rv_to_scores.items()
+            }
+            score_rv_to_pos_prob = {
+                score_rv: probs[q_i]
+                for score_rv, probs in score_rv_to_pos_probs.items()
+            }
+            score_rv_to_neg_prob = {
+                score_rv: probs[q_i]
+                for score_rv, probs in score_rv_to_neg_probs.items()
+            }
+            latent_var_to_count = defaultdict(lambda: 0)
+            bayes_net_dag = DirectedAcyclicGraph(self.latent_rv_to_children)
+            all_latent_rvs = bayes_net_dag.get_all_nodes()
+            latent_rv_to_marginal = {}
+            for latent_rv in all_latent_rvs:
+                score_rv = self.latent_rv_to_score_rv[latent_rv]
+                p_pos = self.label_to_p_pos[latent_rv]
+                if not score_rv in score_rv_to_score:
+                    latent_rv_to_marginal[latent_rv] = 1.0
+                else:
+                    marginal = (score_rv_to_pos_prob[score_rv]*p_pos) \
+                        / ( \
+                            (score_rv_to_pos_prob[score_rv]*p_pos) \
+                            + (score_rv_to_neg_prob[score_rv]*(1-p_pos)) \
+                        )
+                    latent_rv_to_marginal[latent_rv] = marginal
+            label_to_marginals.append(latent_rv_to_marginal)
+        return label_to_marginals
 
 def _validate_pretrained_model(ensemble, train_items, label_graph, features):
     # Check that the label-graphs have same set of labels
