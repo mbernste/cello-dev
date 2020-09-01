@@ -809,6 +809,72 @@ rule metadata_laughney_10x:
             shell('echo "{}"'.format(c))
             shell(c)
 
+rule build_laughney_10x_leiden_0_5_aggregate_log_cpm:
+    input:
+        '{}/datasets/laughney_10x_lung_cancer/counts.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/laughney_10x_lung_cancer/aggregate_by_cluster_leiden_0_5_log_cpm.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'python cluster_compute_mean.py {input} 0.5 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+
+rule build_laughney_10x_leiden_1_0_aggregate_log_cpm:
+    input:
+        '{}/datasets/laughney_10x_lung_cancer/counts.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/laughney_10x_lung_cancer/aggregate_by_cluster_leiden_1_0_log_cpm.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'python cluster_compute_mean.py {input} 1.0 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule build_laughney_10x_leiden_2_0_aggregate_log_cpm:
+    input:
+        '{}/datasets/laughney_10x_lung_cancer/counts.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/laughney_10x_lung_cancer/aggregate_by_cluster_leiden_2_0_log_cpm.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'python cluster_compute_mean.py {input} 2.0 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule build_laughney_10x_leiden_4_0_aggregate_log_cpm:
+    input:
+        '{}/datasets/laughney_10x_lung_cancer/counts.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/laughney_10x_lung_cancer/aggregate_by_cluster_leiden_4_0_log_cpm.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'python cluster_compute_mean.py {input} 4.0 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule build_laughney_10x_leiden_8_0_aggregate_log_cpm:
+    input:
+        '{}/datasets/laughney_10x_lung_cancer/counts.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/laughney_10x_lung_cancer/aggregate_by_cluster_leiden_8_0_log_cpm.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'python cluster_compute_mean.py {input} 8.0 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
 
 ##########################################################
 #   Build dataset to determine effect of clustering

@@ -77,7 +77,7 @@ def main():
     ]
     final_genes = [
         str(x).encode('utf-8')
-        for x in exps_bulk
+        for x in final_genes
     ]
 
     print('Writing data to {}...'.format(out_f_10x))
