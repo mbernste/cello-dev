@@ -86,7 +86,7 @@ rule select_train_test_experiment_sets:
         test='{}/experiment_sets/test_set.untampered_bulk_primary_cells_with_data.json'.format(config['env_dir'])
     run:
         commands = [
-            'python {src}/build_dataset/data_selection/train_test_from_untampered_bulk_primary_cells_with_data.py {{input.annot}} {{input.exp_set}} {src}/build_dataset/data_selection/train_test_partition_data.untampered_bulk_primary_cells_with_data.v4.json -r {{output.train}} -e {{output.test}}'.format(
+            'python {src}/build_dataset/data_selection/train_test_from_untampered_bulk_primary_cells_with_data.py {{input.annot}} {{input.exp_set}} {src}/build_dataset/data_selection/train_test_partition_data.untampered_bulk_primary_cells_with_data.v5.json -r {{output.train}} -e {{output.test}}'.format(
                 src=config['cello_dev']
             )
         ]
@@ -118,6 +118,36 @@ rule build_train_test_experiment_log_tpm_dataset:
             'python {src}/build_dataset/build_expression_matrix.py {{input.test}} {feats} -o {{output.test}}'.format(
                 src=config['cello_dev'],
                 feats='log_tpm'
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule build_train_test_experiment_log_tpm_10x_genes_dataset:
+    input:
+        train='{}/experiment_sets/train_set.untampered_bulk_primary_cells_with_data.json'.format(config['env_dir']),
+        test='{}/experiment_sets/test_set.untampered_bulk_primary_cells_with_data.json'.format(config['env_dir'])
+    output:
+        train='{env}/datasets/train_set.untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm_10x_genes'
+        ),
+        test='{env}/datasets/test_set.untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm_10x_genes'
+        )
+    run:
+        commands = [
+            'mkdir -p {}/datasets/train_set.untampered_bulk_primary_cells_with_data'.format(config['env_dir']),
+            'mkdir -p {}/datasets/test_set.untampered_bulk_primary_cells_with_data'.format(config['env_dir']),
+            'python {src}/build_dataset/build_expression_matrix.py {{input.train}} {feats} -o {{output.train}}'.format(
+                src=config['cello_dev'],
+                feats='log_tpm_10x_genes'
+            ),
+            'python {src}/build_dataset/build_expression_matrix.py {{input.test}} {feats} -o {{output.test}}'.format(
+                src=config['cello_dev'],
+                feats='log_tpm_10x_genes'
             )
         ]
         for c in commands:
@@ -209,6 +239,27 @@ rule select_untampered_bulk_primary_cells_with_data:
         ]
         for c in commands:
             shell(c)
+
+rule build_untampered_bulk_primary_cells_with_data_log_cpm_dataset:
+    input:
+        '{}/experiment_sets/untampered_bulk_primary_cells_with_data.json'.format(config['env_dir']),
+    output:
+        '{env}/datasets/untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_cpm'
+        )
+    run:
+        commands = [
+            'mkdir -p {}/datasets/untampered_bulk_primary_cells_with_data'.format(config['env_dir']),
+            'python {src}/build_dataset/build_expression_matrix.py {{input}} {feats} -o {{output}}'.format(
+                src=config['cello_dev'],
+                feats='log_cpm'
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
 
 rule build_untampered_bulk_primary_cells_with_data_log_tpm_dataset:
     input:
@@ -318,7 +369,7 @@ rule label_untampered_single_cell_primary_cells_with_data:
     run:
         commands = [
             'mkdir -p {}/datasets/untampered_single_cell_primary_cells_with_data'.format(config['env_dir']),
-            'python {src}/build_dataset/label_data.py {env}/annotation.json {{input}} -o {{output}}'.format(
+            'python {src}/build_dataset/label_data.py -s {env}/annotation.json {{input}} -o {{output}}'.format(
                 src=config['cello_dev'],
                 env=config['env_dir']
             )
@@ -345,7 +396,113 @@ rule select_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
         for c in commands:
             shell(c)
 
+rule build_untampered_single_cell_primary_cells_with_data:
+    input:
+        '{}/experiment_sets/untampered_single_cell_primary_cells_with_data.json'.format(config['env_dir']),
+    output:
+        '{env}/datasets/untampered_single_cell_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm'
+        )
+    run:
+        commands = [
+            'mkdir -p {}/datasets/untampered_single_cell_primary_cells_with_data'.format(config['env_dir']),
+            'python {src}/build_dataset/build_expression_matrix.py {{input}} {feats} -o {{output}}'.format(
+                src=config['cello_dev'],
+                feats='log_tpm'
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
 
+rule build_untampered_single_cell_primary_cells_with_data_log_cpm:
+    input:
+        '{}/experiment_sets/untampered_single_cell_primary_cells_with_data.json'.format(config['env_dir']),
+    output:
+        '{env}/datasets/untampered_single_cell_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_cpm'
+        )
+    run:
+        commands = [
+            'mkdir -p {}/datasets/untampered_single_cell_primary_cells_with_data'.format(config['env_dir']),
+            'python {src}/build_dataset/build_expression_matrix.py {{input}} {feats} -o {{output}}'.format(
+                src=config['cello_dev'],
+                feats='log_cpm'
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule build_counts_untampered_single_cell_primary_cells_with_data:
+    input:
+        '{}/experiment_sets/untampered_single_cell_primary_cells_with_data.json'.format(config['env_dir']),
+    output:
+        '{env}/datasets/untampered_single_cell_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='counts'
+        )
+    run:
+        commands = [
+            'mkdir -p {}/datasets/untampered_single_cell_primary_cells_with_data'.format(config['env_dir']),
+            'python {src}/build_dataset/build_expression_matrix.py {{input}} {feats} -o {{output}}'.format(
+                src=config['cello_dev'],
+                feats='counts'
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule build_aggregate_by_cluster_leiden_1_0_untampered_single_cell_primary_cells_with_data:
+    input:
+        exp='{}/experiment_sets/untampered_single_cell_primary_cells_with_data.json'.format(config['env_dir']),
+        data='{env}/datasets/untampered_single_cell_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm'
+        )
+    output:
+        '{}/datasets/untampered_single_cell_primary_cells_with_data/aggregate_by_cluster_leiden_1_0_log_tpm.h5'.format(config['env_dir'])
+    run:
+        commands=[
+            'python cluster_within_study_compute_mean.py {env}/datasets/{dataset} {feats} {res} -o {{output}}'.format(
+                env=config['env_dir'],
+                dataset='untampered_single_cell_primary_cells_with_data',
+                feats='log_tpm',
+                res=1.0
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule metadata_untampered_single_cell_primary_cells_with_data:
+    input:
+        '{}/experiment_sets/untampered_single_cell_primary_cells_with_data.json'.format(config['env_dir'])
+    output:
+        study='{}/datasets/untampered_single_cell_primary_cells_with_data/experiment_to_study.json'.format(config['env_dir']),
+        tags='{}/datasets/untampered_single_cell_primary_cells_with_data/experiment_to_tags.json'.format(config['env_dir'])
+    run:
+        commands = [
+            'mkdir -p {}/datasets/untampered_single_cell_primary_cells_with_data'.format(config['env_dir']),
+            'python {src}/build_dataset/build_study_metadata_file.py {{input}} {env}/annotation.json -o {{output.study}}'.format(
+                src=config['cello_dev'],
+                env=config['env_dir']
+            ),
+            'python {src}/build_dataset/build_tags_metadata_file.py {{input}} {env}/annotation.json -o {{output.tags}}'.format(
+                src=config['cello_dev'],
+                env=config['env_dir']
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+#################################################################################################################
+#   Only single-cell samples with data in bulk data set
+#################################################################################################################
 rule build_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
     input:
         '{}/experiment_sets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk.json'.format(config['env_dir']),
@@ -366,6 +523,45 @@ rule build_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
             shell('echo "{}"'.format(c))
             shell(c)
 
+rule build_log_cpm_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
+    input:
+        '{}/experiment_sets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk.json'.format(config['env_dir']),
+    output:
+        '{env}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_cpm'
+        )
+    run:
+        commands = [
+            'mkdir -p {}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk'.format(config['env_dir']),
+            'python {src}/build_dataset/build_expression_matrix.py {{input}} {feats} -o {{output}}'.format(
+                src=config['cello_dev'],
+                feats='log_cpm'
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule build_counts_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
+    input:
+        '{}/experiment_sets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk.json'.format(config['env_dir']),
+    output:
+        '{env}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='counts'
+        )
+    run:
+        commands = [
+            'mkdir -p {}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk'.format(config['env_dir']),
+            'python {src}/build_dataset/build_expression_matrix.py {{input}} {feats} -o {{output}}'.format(
+                src=config['cello_dev'],
+                feats='counts'
+            )
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
 
 rule build_aggregate_by_cluster_leiden_1_0_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk: 
     input:
@@ -398,7 +594,7 @@ rule label_untampered_single_cell_primary_cells_with_data_cell_types_in_bulk:
     run:
         commands = [
             'mkdir -p {}/datasets/untampered_single_cell_primary_cells_with_data_cell_types_in_bulk'.format(config['env_dir']),
-            'python {src}/build_dataset/label_data.py {env}/annotation.json {{input}} -o {{output}}'.format(
+            'python {src}/build_dataset/label_data.py -s {env}/annotation.json {{input}} -o {{output}}'.format(
                 src=config['cello_dev'],
                 env=config['env_dir']
             )
@@ -550,3 +746,154 @@ rule metadata_10x:
         for c in commands:
             shell('echo "{}"'.format(c))
             shell(c)
+
+
+###########################################################
+#   Build datasets for benchmarking against Laughney et al.
+#   lung cancer 10x data
+###########################################################
+rule build_laughney_10x_counts:
+    input:
+        raw_10x='{}/PATIENT_LUNG_ADENOCARCINOMA_ANNOTATED.h5'.format(
+            config['external_data_locations']['laughney_2020']
+        ),
+        bulk_tpm='{env}/datasets/untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm'
+        )
+    output:
+        tenx_out='{env}/datasets/laughney_10x_lung_cancer/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='counts'
+        ),
+        bulk_out='{env}/datasets/untampered_bulk_primary_cells_with_data/{feats}.h5'.format(
+            env=config['env_dir'],
+            feats='log_tpm_laughney_10x_genes'
+        )
+    run:
+        commands = [
+            'python build_expression_matrices_laughney_2020.py {input.raw_10x} {input.bulk_tpm} {output.tenx_out} {output.bulk_out}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule label_laughney_10x:
+    input:
+        '{}/PATIENT_LUNG_ADENOCARCINOMA_ANNOTATED.h5'.format(
+            config['external_data_locations']['laughney_2020']
+        )
+    output:
+        '{}/datasets/laughney_10x_lung_cancer/labels.json'.format(config['env_dir'])
+    run:
+        commands = [
+            'python label_laughney_10x_data.py {input} -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+
+rule metadata_laughney_10x:
+    input:
+        '{}/datasets/laughney_10x_lung_cancer/counts.h5'.format(config['env_dir'])
+    output:
+        study='{}/datasets/laughney_10x_lung_cancer/experiment_to_study.json'.format(config['env_dir']),
+        tags='{}/datasets/laughney_10x_lung_cancer/experiment_to_tags.json'.format(config['env_dir'])
+    run:
+        commands = [
+            'python build_study_metadata_file_laughney_10x.py {input} -o {output.study}',
+            'python build_tags_metadata_file_laughney_10x.py {input} -o {output.tags}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+
+##########################################################
+#   Build dataset to determine effect of clustering
+##########################################################
+
+rule build_10x_pure_clusters_log_cpm:
+    output:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type.pure_clusters/log_cpm.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'mkdir -p {}/datasets/zheng_10x_PBMC_2000_cells_per_type.pure_clusters'.format(config['env_dir']),
+            'python build_pure_cluster_dataset.py 200 100 -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule label_10x_pure_clusters:
+    input:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type.pure_clusters/log_cpm.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type.pure_clusters/labels.json'.format(config['env_dir'])
+    run:
+        commands = [
+            'python label_10x_data.py {input} -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c) 
+
+rule metadata_10x_pure_clusters:
+    input:
+        '{}/datasets/zheng_10x_PBMC_2000_cells_per_type.pure_clusters/log_cpm.h5'.format(config['env_dir'])
+    output:
+        study='{}/datasets/zheng_10x_PBMC_2000_cells_per_type.pure_clusters/experiment_to_study.json'.format(config['env_dir']),
+        tags='{}/datasets/zheng_10x_PBMC_2000_cells_per_type.pure_clusters/experiment_to_tags.json'.format(config['env_dir'])
+    run:
+        commands = [
+            'python build_study_metadata_file_10x.py {input} -o {output.study}',
+            'python build_tags_metadata_file_10x.py {input} -o {output.tags}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+##########################################################
+#   Build pseudo-bulk samples
+##########################################################
+rule build_10x_pseudo_bulk_log_cpm:
+    output:
+        '{}/datasets/zheng_10x_PBMC.pseudo_bulk/log_cpm.h5'.format(config['env_dir'])
+    run:
+        commands = [
+            'mkdir -p {}/datasets/zheng_10x_PBMC.pseudo_bulk'.format(config['env_dir']),
+            'python build_pseudo_bulk_dataset.py -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule label_10x_pseudo_bulk:
+    input:
+        '{}/datasets/zheng_10x_PBMC.pseudo_bulk/log_cpm.h5'.format(config['env_dir'])
+    output:
+        '{}/datasets/zheng_10x_PBMC.pseudo_bulk/labels.json'.format(config['env_dir'])
+    run:
+        commands = [
+            'python label_10x_data.py {input} -o {output}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
+rule metadata_10x_pseudo_bulk:
+    input:
+        '{}/datasets/zheng_10x_PBMC.pseudo_bulk/log_cpm.h5'.format(config['env_dir'])
+    output:
+        study='{}/datasets/zheng_10x_PBMC.pseudo_bulk/experiment_to_study.json'.format(config['env_dir']),
+        tags='{}/datasets/zheng_10x_PBMC.pseudo_bulk/experiment_to_tags.json'.format(config['env_dir'])
+    run:
+        commands = [
+            'python build_study_metadata_file_10x.py {input} -o {output.study}',
+            'python build_tags_metadata_file_10x.py {input} -o {output.tags}'
+        ]
+        for c in commands:
+            shell('echo "{}"'.format(c))
+            shell(c)
+
